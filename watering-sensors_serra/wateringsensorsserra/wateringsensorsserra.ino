@@ -471,7 +471,9 @@ void reconnect() {
       client.subscribe("forcestart");
       client.subscribe("pumptime");
       client.subscribe("humidityth");
-
+     client.subscribe("externalpump");
+      client.subscribe("Vref_18650_tune");
+      client.subscribe("Vref_lead_tune");
 }
 }
 mqtt_rcstr=(String) mqtt_rc;
