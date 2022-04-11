@@ -49,25 +49,19 @@ float adc_voltage_lead = 0.0;
 float adc_voltage_18650 = 0.0;
 float in_voltage_lead = 0.0;
 float in_voltage_18650 = 0.0;
-// Float for Reference Voltage
-volatile float ref_voltage_18650 = 1.042;
-volatile float ref_voltage_lead = 3.388;
 
 // Floats for resistor values in divider (in ohms)
 float R1_lead = 29970.0;
 float R2_lead = 7510.0;
 float R1_18650 = 29970.0;
 float R2_18650 = 7510.0;  
-
+// Float for Reference Voltage
+float ref_voltage_18650 = 1.042;
+float ref_voltage_lead = 3.388;
 
 // Integer for ADC value
 int adc_value_lead = 0;
 int adc_value_18650 = 0;
-
-
-//tuned ref Voltage
-float Vref_18650_tune;
-float Vref_lead_tune;
 
 #include <math.h>
 #include <stdio.h>
@@ -142,11 +136,11 @@ const int   daylightOffset_sec = 0;  //Replace with your daylight offset (second
 // Global variables for Time
 // time_t rawtime;// global holding current datetime as Epoch
 
-String  hum_str,temp_str,watertick_str, forcestart_str, pumptime_str, humidityth_str,epochstart_str,epocheau_str, measured_18650_str, measured_lead_str;
+String  hum_str,temp_str,watertick_str, forcestart_str, pumptime_str, humidityth_str,epochstart_str,epocheau_str;
 char temp1char[6];
 char hum1char[6];
 char watertickchar[10];
-char humiditythchar[6],pumptimechar[20],forcestartchar[6], measured_18650char[5],measured_leadchar[6];
+char humiditythchar[6],pumptimechar[20],forcestartchar[6];
 char epochstartchar[30];
 char epocheauchar[30];
 //control variables for nano
@@ -157,11 +151,8 @@ struct remotedata_STRUCT
 {
 //control var from wemos
  volatile bool forcestart = false;
-  volatile bool external_pump = false;
  volatile unsigned long pumptime = 270000;
  volatile unsigned short humidityth = 1600;
-  volatile float measured_18650 = 4.2;
-  volatile float measured_lead = 12.7;
 } remotedata;
 
 unsigned short Hour;
@@ -181,10 +172,6 @@ RTC_DATA_ATTR unsigned short startcounter=0;
 const char* topic1="forcestart";
   const char* topic2="pumptime";
   const char* topic3="humidityth";
-  const char* topic4="external_pump";
-  const char* topic5="Vref_18650_tune";
-  const char* topic6="Vref_lead_tune";
-
 
 unsigned long lastMsg = 0;
 unsigned long LastVolt=0;
@@ -285,7 +272,7 @@ WiFi.printDiag(Serial);
 
 void callback(char* topic,byte* payload,unsigned int length) {
    volatile unsigned long tmp=0;
-   volatile double intpayload=0;
+   volatile unsigned long intpayload=0;
    //byte * payload_str;
    //char *payloadchar;
   Serial.print("Message arrived [");
@@ -309,9 +296,9 @@ void callback(char* topic,byte* payload,unsigned int length) {
      // payload_str.toCharArray(payloadchar, payload_str.length()); //packaging up the data to publish to mqtt whoa...
             Serial.println("line 190");
 // if (payload_str[0]=='t'||payloadchar[0]=='f'){
-    //intpayload = atoi((char *)payload);
-        intpayload = atof((char *)payload);
+    intpayload = atoi((char *)payload);
     Serial.println("atoi((char *)payload)");
+          Serial.println(intpayload);
       if (aux==1){
       client.publish("telemetry","Arduino think Received message on topic forcestart");
                                       client.publish("telemetry","intpayload");
@@ -364,68 +351,8 @@ aux=(strncmp(topic, topic3, strlen(topic3))==0);
 
     }
  //}
-Serial.println("strncmp(topic, topic4, strlen(topic4))");
-aux=(strncmp(topic, topic4, strlen(topic4))==0);
-      tmp=tmp+aux;
-      Serial.println(aux);
-      if (aux==1){
-      client.publish("telemetry","Arduino think Received message on topic external_pump");
-     //                                 client.publish("telemetry","intpayload");
-//                                      client.publish("telemetry",intpayload);
- //                                     Serial.println("payload_str");
- // Serial.println((char *)payload_str);
- if (intpayload==1){
-   //Serial.println("intpayload");
- // Serial.println(intpayload);
-    remotedata.external_pump=true;
-          Serial.println("external_pump set");          //
-        client.publish("telemetry","external_pump set");
-           digitalWrite(RelayValveControll, LOW);
- }
- else{
-   // Serial.println("intpayload");
-  //Serial.println(intpayload);
-      remotedata.external_pump=false;
-            Serial.println("external_pump unset");          //
-        client.publish("telemetry","external_pump unset");
-           digitalWrite(RelayValveControll, HIGH);
- }
-    }
-    
-    Serial.println("strncmp(topic, topic5, strlen(topic5))");
-aux=(strncmp(topic, topic5, strlen(topic5))==0);
-      tmp=tmp+aux;
-      Serial.println(aux);
-      if (aux==1){
-      client.publish("telemetry","Arduino think Received message on topic measured_18650");
-   remotedata.measured_18650 = intpayload;
-    Serial.println(remotedata.measured_18650);
-    measured_18650_str=(String) intpayload;
-    measured_18650_str[measured_18650_str.length()] = '\0'; // Make payload a string by NULL terminating it.
-    measured_18650_str.toCharArray(measured_18650char, measured_18650_str.length() + 1); //packaging up the data to publish to mqtt whoa...
-                client.publish("telemetry","Arduino think Received message on topic measured_18650=");
-                                client.publish("telemetry",measured_18650char);
-                                Serial.println("measured_18650char");
-                                Serial.println(measured_18650char);
+                 Serial.println("line 208");
 
-    }
-      Serial.println("strncmp(topic, topic6, strlen(topic6))");
-aux=(strncmp(topic, topic6, strlen(topic6))==0);
-      tmp=tmp+aux;
-      Serial.println(aux);
-      if (aux==1){
-      client.publish("telemetry","Arduino think Received message on topic measured_lead");
-   remotedata.measured_lead = intpayload;
-    Serial.println(remotedata.measured_lead);
-    measured_lead_str=(String) intpayload;
-    measured_lead_str[measured_18650_str.length()] = '\0'; // Make payload a string by NULL terminating it.
-    measured_lead_str.toCharArray(measured_leadchar, measured_lead_str.length() + 1); //packaging up the data to publish to mqtt whoa...
-                client.publish("telemetry","Arduino think Received message on topic measured_leadchar=");
-                                client.publish("telemetry",measured_leadchar);
-                                Serial.println("measured_leadchar");
-                                Serial.println(measured_leadchar);
-
-    } 
   //char *topiclist = { "forcestart", "pumptime", "humidityth"};
     if (tmp==1)
     {
@@ -525,7 +452,7 @@ void setup() {
     remotedata.humidityth = preferences.getUShort("humidityth", 1600);
     sensorsdata.watertick = preferences.getULong("watertick", 0);
     String tmp=preferences.getString("lastactive", "never");
-    //int tmp_l = tmp.length();
+    int tmp_l = tmp.length();
     strcpy(sensorsdata.lastactive, tmp.c_str());
   // Close the Preferences
   preferences.end();
@@ -600,50 +527,6 @@ void water_off(){
              digitalWrite(RelayValveControll, HIGH);
           client.publish("telemetry", "watering off");
 Serial.println("watering off!!!");
-}
-
-void tune_Vref_18650(){
-  adc1_config_width(ADC_WIDTH_BIT_12);
-    unsigned long somma=0;
-    float val;
-        adc1_config_channel_atten(ADC1_CHANNEL_6,ADC_ATTEN_DB_0);
-   Serial.println("reading 100 samples from adc_6");
-    for (int i=0;i<100;i++){
-//Serial.println(" adc1_get_raw(ADC1_CHANNEL_6");
-//Serial.println(adc1_get_raw(ADC1_CHANNEL_6));
-      somma += adc1_get_raw(ADC1_CHANNEL_6);
-         // Serial.println(" somma");
-//Serial.println(somma);
-      delay(100);
-    }
-//Serial.println(" adc1_get_raw(ADC1_CHANNEL_6");
-//Serial.println(adc1_get_raw(ADC1_CHANNEL_6));
-    val=somma/(float)100;
-Vref_18650_tune=remotedata.measured_18650/val*4096*(R2_18650/(R1_18650+R2_18650));
-ref_voltage_18650=(float)Vref_18650_tune;
-         client.publish("telemetry","Setting Ref Voltage 18650");
-}
-
-void tune_Vref_lead(){
-  adc1_config_width(ADC_WIDTH_BIT_12);
-    unsigned long somma=0;
-    float val;
-        adc1_config_channel_atten(ADC1_CHANNEL_7,ADC_ATTEN_DB_11);
-   Serial.println("reading 100 samples from adc_6");
-    for (int i=0;i<100;i++){
-//Serial.println(" adc1_get_raw(ADC1_CHANNEL_7");
-//Serial.println(adc1_get_raw(ADC1_CHANNEL_7));
-      somma += adc1_get_raw(ADC1_CHANNEL_7);
-         // Serial.println(" somma");
-//Serial.println(somma);
-      delay(100);
-    }
-//Serial.println(" adc1_get_raw(ADC1_CHANNEL_6");
-//Serial.println(adc1_get_raw(ADC1_CHANNEL_6));
-    val=somma/(float)100;
-Vref_lead_tune=remotedata.measured_lead/val*4096*(R2_lead/(R1_lead+R2_lead));
-ref_voltage_lead=(float)Vref_lead_tune;
-         client.publish("telemetry","setting Ref Voltage Lead");
 }
 
 void measure_voltages(){
@@ -840,7 +723,7 @@ if (millis()-LastVolt>2*60*1000){
   if (startcounter>=2){
     EMERGENCY_STOP=true;
   }
-      
+
 wateringon = ((digitalRead(RelayWaterControll) == LOW) || (digitalRead(RelayWaterControll) == 0));
 printLocalTime();
   if (!client.connected()) {
@@ -856,7 +739,7 @@ const char topic3[]  = "lastactive";
 
 sensors_reading();
 
-if (remotedata.forcestart && !wateringon && !remotedata.external_pump){
+if (remotedata.forcestart && !wateringon){
     printLocalTime();
  //sensorsdata.lastactive=*asctime(&tm);
   water_on();
@@ -864,7 +747,7 @@ if (remotedata.forcestart && !wateringon && !remotedata.external_pump){
 Serial.println("Avvio innaffiatura per comando da remoto");
 }
 else{
-if (sensorsdata.hum1 > remotedata.humidityth && sensorsdata.temp1*100>1000 && !wateringon && Hour==WATERING_HOUR && !EMERGENCY_STOP && !remotedata.external_pump) {
+if (sensorsdata.hum1 > remotedata.humidityth && sensorsdata.temp1*100>1000 && !wateringon && Hour==WATERING_HOUR && !EMERGENCY_STOP) {
     printLocalTime();
 //     sensorsdata.lastactive=*asctime(&tm);
  water_on();
@@ -874,11 +757,11 @@ Serial.println("Avvio innaffiatura per umidita terreno bassa e temperatura sopra
              client.publish("telemetry", "Avvio innaffiatura per umidita terreno bassa e temperatura sopra soglia");
 }
 else{
-  if (sensorsdata.hum1>remotedata.humidityth && !wateringon && Hour!=WATERING_HOUR && !EMERGENCY_STOP && sensorsdata.temp1*100<1000 && !remotedata.external_pump){
+  if (sensorsdata.hum1>remotedata.humidityth&&!wateringon&&Hour!=WATERING_HOUR&&!EMERGENCY_STOP&& sensorsdata.temp1*100<1000){
           Serial.println("Bassa umidita ma temperatura sotto soglia");          //
   }
   else{
-  if (sensorsdata.hum1>remotedata.humidityth && !wateringon && !EMERGENCY_STOP && sensorsdata.temp1*100>1000 && !remotedata.external_pump){
+  if (sensorsdata.hum1>remotedata.humidityth&&!wateringon&&!EMERGENCY_STOP&&sensorsdata.temp1*100>1000){
           Serial.println("Bassa umidita ma non e' l'ora di innaffiare");          //
   }
   else{
@@ -886,18 +769,6 @@ else{
 water_off();
                 Serial.println("EMERGENCY_STOP");          //
         client.publish("telemetry","EMERGENCY_STOP!!!");
-    }
-    else{
-      if (remotedata.external_pump){
-        Serial.println("external_pump setup");          //
-        client.publish("telemetry","external_pump setup");
-           digitalWrite(RelayValveControll, LOW);
-   delay(15*1000);
-      }
-      else{
-        Serial.println("unknow state??");          //
-        client.publish("telemetry","unknow state??");
-      }
     }
   }
   }
@@ -1058,7 +929,6 @@ snprintf ( wakechar, 40, "Next wake:\n %s",ctime(&wake_tt));
     Serial.println("boot counter:");
   Serial.println(bootCount);
           client.publish("telemetry","going to sleep");
-          client.publish("telemetry",wakechar);
   delay(1000);
   Serial.flush();
   esp_deep_sleep_start();
