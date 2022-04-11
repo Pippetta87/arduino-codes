@@ -181,7 +181,7 @@ RTC_DATA_ATTR unsigned short startcounter=0;
 const char* topic1="forcestart";
   const char* topic2="pumptime";
   const char* topic3="humidityth";
-  const char* topic4="external_pump";
+  const char* topic4="externalpump";
   const char* topic5="Vref_18650_tune";
   const char* topic6="Vref_lead_tune";
 
@@ -284,6 +284,7 @@ WiFi.printDiag(Serial);
 }
 
 void callback(char* topic,byte* payload,unsigned int length) {
+              Serial.println("received mqtt payload");
    volatile unsigned long tmp=0;
    volatile double intpayload=0;
    //byte * payload_str;
@@ -318,7 +319,7 @@ void callback(char* topic,byte* payload,unsigned int length) {
 //                                      client.publish("telemetry",intpayload);
                                       Serial.println("payload_str");
  // Serial.println((char *)payload_str);
- if (intpayload==1){
+ if ((int)intpayload==1){
    Serial.println("intpayload");
   Serial.println(intpayload);
     remotedata.forcestart=true;
@@ -367,6 +368,7 @@ aux=(strncmp(topic, topic3, strlen(topic3))==0);
 Serial.println("strncmp(topic, topic4, strlen(topic4))");
 aux=(strncmp(topic, topic4, strlen(topic4))==0);
       tmp=tmp+aux;
+            Serial.println("aux4");
       Serial.println(aux);
       if (aux==1){
       client.publish("telemetry","Arduino think Received message on topic external_pump");
@@ -374,7 +376,8 @@ aux=(strncmp(topic, topic4, strlen(topic4))==0);
 //                                      client.publish("telemetry",intpayload);
  //                                     Serial.println("payload_str");
  // Serial.println((char *)payload_str);
- if (intpayload==1){
+           Serial.println("topic external pump :waiting understand payload");          //
+ if ((int)intpayload==1){
    //Serial.println("intpayload");
  // Serial.println(intpayload);
     remotedata.external_pump=true;
@@ -518,9 +521,13 @@ void setup() {
   // Or remove the counter key only
   //preferences.remove("counter");
 
+//testing valve connection
   // Note: Key name is limited to 15 chars.
  remotedata.forcestart = preferences.getBool("forcestart", false);
   EMERGENCY_STOP = preferences.getBool("EMERGENCY_STOP", false);
+   ref_voltage_18650 =preferences.getFloat("ref_voltage_18650", 1.042);
+      ref_voltage_lead =preferences.getFloat("ref_voltage_lead", 3.388);
+      remotedata.external_pump=preferences.getBool("external_pump", false);
     remotedata.pumptime = preferences.getULong("pumptime", 270000);
     remotedata.humidityth = preferences.getUShort("humidityth", 1600);
     sensorsdata.watertick = preferences.getULong("watertick", 0);
@@ -575,8 +582,9 @@ Serial.println("Dallas Temperature IC Control Library Demo");
  digitalWrite(RelayWaterControll, HIGH);
       Serial.println("Settin RelayValveControl1 to output");
  pinMode(RelayValveControll, OUTPUT);
- digitalWrite(RelayValveControll, HIGH);
- 
+ //digitalWrite(RelayValveControll, HIGH);
+            digitalWrite(RelayValveControll, LOW);
+
       adcAttachPin(humpin);
 
 }
@@ -1050,6 +1058,9 @@ snprintf ( wakechar, 40, "Next wake:\n %s",ctime(&wake_tt));
   preferences.putBool("EMERGENCY_STOP", EMERGENCY_STOP);
   preferences.putULong("pumptime", remotedata.pumptime);
   preferences.putUShort("humidityth", remotedata.humidityth);
+   ref_voltage_18650 =preferences.putFloat("ref_voltage_18650", 1.042);
+      ref_voltage_lead =preferences.putFloat("ref_voltage_lead", 3.388);
+      remotedata.external_pump=preferences.getBool("external_pump", false);
   preferences.putULong("watertick", sensorsdata.watertick);
   preferences.putString("lastactive", sensorsdata.lastactive);
   // Close the Preferences
