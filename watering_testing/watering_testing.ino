@@ -76,9 +76,6 @@ float Vref_lead_tune;
 #include <Arduino.h>
 #include <WiFi.h>
 #include <PubSubClient.h>
-#define MQTT_KEEP_ALIVE 5 // int, in seconds
-#define MQTT_CLEAN_SESSION false // bool, resuse existing session
-#define MQTT_TIMEOUT 15000 // int, in miliseconds
 #include <time.h>                       // time() ctime()
 #include <sys/time.h>                   // struct timeval
 #include <OneWire.h>
@@ -109,7 +106,7 @@ const char* mqtt_server = "mqtt.flespi.io";
 const int mqttPort = 1883;
 const char* mqttUser = "iCF53tOTdMwPvvCQFdjFI0YaagAoIVjQlOJe5nV7XhMgAdX5g6AOVmOTsc7YVgF6";
 const char* mqttPassword = "";
-const char* clientId = "212.serra.abete.ruf";
+const char* clientId = "serra.abete.ruf";
 String bssidstr;
 uint8_t encryptionType;
 int32_t RSSI;
@@ -185,12 +182,12 @@ const char* topic1="forcestart";
   const char* topic2="pumptime";
   const char* topic3="humidityth";
   const char* topic4="externalpump";
-  const char* topic5="Vref18650tune";
-  const char* topic6="Vrefleadtune";
+  const char* topic5="Vref_18650_tune";
+  const char* topic6="Vref_lead_tune";
 
 
 unsigned long lastMsg = 0;
-unsigned long LastVolt=0,LastSensors=0;
+unsigned long LastVolt=0;
 unsigned long prev_read=0;
 unsigned long prev_send=0;
 unsigned long sleep_timer=0;
@@ -457,7 +454,7 @@ aux=(strncmp(topic, topic6, strlen(topic6))==0);
 */
 void reconnect() {
   // Loop until we're reconnected
-  short mqtt_rc=0;
+  unsigned short mqtt_rc=0;
   String mqtt_rcstr;
   char mqtt_rcchr[5];
   while (!client.connected()) {
@@ -474,9 +471,7 @@ void reconnect() {
       client.subscribe("forcestart");
       client.subscribe("pumptime");
       client.subscribe("humidityth");
-     client.subscribe("externalpump");
-      client.subscribe("Vref18650tune");
-      client.subscribe("Vrefleadtune");
+
 }
 }
 mqtt_rcstr=(String) mqtt_rc;
@@ -578,6 +573,7 @@ localtime_r(&now_tt,&epochstart_tm);
      epochstart_str.toCharArray(epochstartchar, epochstart_str.length()); //packaging up the data to publish to mqtt whoa...
 //    char* aux=asctime(epochstart_tm);
          client.publish("telemetry", epochstartchar);
+
 Serial.println("Dallas Temperature IC Control Library Demo");
  // Start up the library
  sensors.begin();
@@ -586,8 +582,8 @@ Serial.println("Dallas Temperature IC Control Library Demo");
  digitalWrite(RelayWaterControll, HIGH);
       Serial.println("Settin RelayValveControl1 to output");
  pinMode(RelayValveControll, OUTPUT);
- digitalWrite(RelayValveControll, HIGH);
- //           digitalWrite(RelayValveControll, LOW);
+ //digitalWrite(RelayValveControll, HIGH);
+            digitalWrite(RelayValveControll, HIGH);
 
       adcAttachPin(humpin);
 
@@ -659,8 +655,6 @@ ref_voltage_lead=(float)Vref_lead_tune;
 }
 
 void measure_voltages(){
-     Serial.println("Measuring Voltage");
-           client.publish("telemetry","Measure Voltage");
   LastVolt=millis();
   adc1_config_width(ADC_WIDTH_BIT_12);
     unsigned long somma=0;
@@ -741,7 +735,6 @@ if (in_voltage_18650<=2.9){
 }
 
 void sensors_reading(){
-  LastSensors=millis();
   Serial.print(" Requesting temperatures...");
 /*
 ROM = 28 8E 28 95 F0 1 3C 15
@@ -848,252 +841,5 @@ void ftoa(float n, char* res, int afterpoint)
 
 void loop() {
 
-if (millis()-LastVolt>2*60*1000){
-  measure_voltages();
-}
-
-  if (startcounter>=2&&!remotedata.forcestart){
-    EMERGENCY_STOP=true;
-  }
-      
-wateringon = ((digitalRead(RelayWaterControll) == LOW) && (digitalRead(RelayWaterControll) == LOW));
-printLocalTime();
-short mqtt_rc=client.state();
-  Serial.println("MQTT client state:");
-    Serial.println(mqtt_rc);
-
-if (!client.connected()) {
-  Serial.println("MQTT NOT connected!!");
-    reconnect();
-  }
-  client.loop();
-/*
-const char topic[]  = "hum1";//real unique topic
-const char topic2[]  = "temp1";
-const char topic3[]  = "lastactive";
-*/
- // internal_tick = millis();
-
-
-if (millis()-LastSensors>30*1000){
-sensors_reading();
-}
-
-if (remotedata.forcestart && !remotedata.external_pump){
-    printLocalTime();
- //sensorsdata.lastactive=*asctime(&tm);
-  water_on();
-        EMERGENCY_STOP=false;
-Serial.println("Avvio innaffiatura per comando da remoto");
-}
-else{
-if (sensorsdata.hum1 > remotedata.humidityth && sensorsdata.temp1*100>1000 && !wateringon && Hour==WATERING_HOUR && !EMERGENCY_STOP && !remotedata.external_pump) {
-    printLocalTime();
-//     sensorsdata.lastactive=*asctime(&tm);
- water_on();
- Serial.println("sensorsdata.lastactive=asctime(&tm)");
- Serial.println(asctime(&tm));
-Serial.println("Avvio innaffiatura per umidita terreno bassa e temperatura sopra soglia");
-             client.publish("telemetry", "Avvio innaffiatura per umidita terreno bassa e temperatura sopra soglia");
-}
-else{
-  if (sensorsdata.hum1>remotedata.humidityth && !wateringon && Hour!=WATERING_HOUR && !EMERGENCY_STOP && sensorsdata.temp1*100<1000 && !remotedata.external_pump){
-          Serial.println("Bassa umidita ma temperatura sotto soglia");          //
-  }
-  else{
-  if (sensorsdata.hum1>remotedata.humidityth && !wateringon && !EMERGENCY_STOP && sensorsdata.temp1*100>1000 && !remotedata.external_pump){
-          Serial.println("Bassa umidita ma non e' l'ora di innaffiare");          //
-  }
-  else{
-    if (EMERGENCY_STOP){
-water_off();
-                Serial.println("EMERGENCY_STOP");          //
-        client.publish("telemetry","EMERGENCY_STOP!!!");
-    }
-    else{
-      if (remotedata.external_pump){
-        Serial.println("external_pump setup");          //
-        client.publish("telemetry","external_pump setup");
-           digitalWrite(RelayValveControll, LOW);
-   delay(15*1000);
-      }
-      else{
-        if (!remotedata.forcestart&&wateringon){
-          Serial.println("turning off from forcestart");          //
-        client.publish("telemetry","turning off from forcestart");
-        }
-        else{
-        Serial.println("unknow state??");          //
-        client.publish("telemetry","unknow state??");
-        }
-      }
-    }
-  }
-  }
-}
-}
-wateringon = ((digitalRead(RelayWaterControll) == LOW) || (digitalRead(RelayWaterControll) == 0));
-//Serial.println("internal_tick");
-//Serial.println(internal_tick);
-Serial.println("sensorsdata.watertick");
-Serial.println(sensorsdata.watertick);
-Serial.println("remotedata.pumptime");
-Serial.println(remotedata.pumptime);
-Serial.println("wateringon()");
-Serial.println(wateringon);
-
-
-if (wateringon){
-Serial.println("wateringon true");
-}
-
-if (((millis()-sensorsdata.watertick)>=remotedata.pumptime)&&(wateringon)){
-water_off();            
-remotedata.forcestart=false;
-}
-wateringon = ((digitalRead(RelayWaterControll) == LOW) || (digitalRead(RelayWaterControll) == 0));
-
-if ((millis()-sensorsdata.watertick>=remotedata.pumptime)&&(wateringon)){
-Serial.println("watering on");
-Serial.println(millis()-sensorsdata.watertick);
-
-}
-
-  if (millis() - lastMsg > 20*1000) {
-
-    lastMsg = millis();
-  //  lastMsg = internal_tick;
-    //++value;
-    //the String.toCharArray()
-    //snprintf(msg, MSG_BUFFER_SIZE, "hello world #%ld", String.toCharArray(asctime(timeinfo)));
-  //asctime(timeinfo).toCharArray(msg, 24);
-       // Serial.print(aux);
-     temp_str = (String) (sensorsdata.temp1/100); //converting ftemp (the float variable above) to a string
-     temp_str[temp_str.length()] = '\0';
-    temp_str.toCharArray(temp1char, temp_str.length()+1); //packaging up the data to publish to mqtt whoa...
- hum_str = (String) sensorsdata.hum1; //converting ftemp (the float variable above) to a string
-     hum_str[hum_str.length()] = '\0';
-    hum_str.toCharArray(hum1char, hum_str.length()+1); //packaging up the data to publish to mqtt whoa...
-        Serial.println("Publish message to hum1");
- client.publish("hum1", hum1char);
-         Serial.println("Publish message to temp1");
- client.publish("temp1", temp1char);
-}
-
-if (millis()-prev_read>=20*1000){
-
-if (sensorsdata.watertick!=0){
-
-//  epocheau= (unsigned long)(mktime(&epochstart_tm)+sensorsdata.watertick/1000);
-//  epocheau_tm=(time_t)epocheau;
-     // localtime_r(&epocheau_tm, &tmepocheeau);// update the structure tm with the current time
-//       Serial.printf("The current date/time is: %s", asctime(&tmepocheeau));
-       
-            Serial.println("sensorsdata.watertick/1000");
-            Serial.println(sensorsdata.watertick/1000);
-            Serial.println("mktime(&epochstart_tm)");
-            Serial.println(mktime(&epochstart_tm));
-            Serial.println("mktime(&epochstart_tm)+sensorsdata.watertick/1000");
-            Serial.println(mktime(&epochstart_tm)+sensorsdata.watertick/1000);
-  Serial.println("line 534");
-      Serial.println("Convertin epocheau to date time");
-    Serial.print(tm.tm_year+1900);
-    Serial.print(" ");
-    Serial.print(tm.tm_mon+1);
-    Serial.print(" ");
-    Serial.print(tm.tm_mday);
-    Serial.print(" ");
-    Serial.print(tm.tm_hour);
-    Serial.print(F(":"));
-    Serial.print(tm.tm_min);
-    Serial.print(F(":"));
-    Serial.print(tm.tm_sec);
-      Serial.println("");
-        Serial.println("line 548");
-    //epocheau_str=(String) asctime(&tmepocheeau);
-        epocheau_str=(String) sensorsdata.lastactive;
-    epocheau_str[epocheau_str.length()] = '\0';// Make payload a string by NULL terminating it.
-    epocheau_str.toCharArray(epocheauchar, epocheau_str.length() + 1);//packaging up the data to publish to mqtt whoa...
-    //client.publish("telemetry","epocheauchar date/time");
-     //client.publish("telemetry",epocheauchar);
-  watertick_str=(String) sensorsdata.watertick;
-    watertick_str[watertick_str.length()] = '\0';// Make payload a string by NULL terminating it.
-    watertick_str.toCharArray(watertickchar, watertick_str.length() + 1);//packaging up the data to publish to mqtt whoa...  
-    client.publish("telemetry","watertickchar");
-     client.publish("telemetry",watertickchar);
-     client.publish("lastactive",epocheauchar);
-}
-else{
-        Serial.println("Last watering: never (sensorsdata.watertick==0)");
-    client.publish("telemetry","epocheauchar date/time: never (sensorsdata.watertick==0)");
-        client.publish("lastactive","never");
-}
-    prev_read=millis();
-}
-
-
-if (wateringon){
-  if (sensorsdata.hum1>humM){
-    humM=sensorsdata.hum1;
-  }
-   if (sensorsdata.hum1<humm){
-    humm=sensorsdata.hum1;
-  }
-  Serial.println("Minimo massimo umidita");
-Serial.println(humm);
-Serial.println(humM);
-
-    if (humM-humm<1000&&((millis()-sensorsdata.watertick)>=23*1000)&&!remotedata.forcestart){
-        EMERGENCY_STOP=true;
-  }
-  }
-
-  if (Hour!=WATERING_HOUR&&startcounter!=0&&!remotedata.forcestart){
-startcounter=0;
-     client.publish("telemetry","resetting startcounter at 23 o 0");
-      Serial.println("resetting startcounter at 23 o 0");
-}
-
-if ((millis()-sleep_timer>=5*60*1000)&&!wateringon&&!remotedata.forcestart){
-    preferences.begin("remotedata", false);
-
-  // Remove all preferences under the opened namespace
-  //preferences.clear();
-
-
- struct tm wakeTM = *localtime(&now_tt);
-char wakechar[40];
-
-wakeTM.tm_sec += TIME_TO_SLEEP;
-
-//struct tm startTM;
-//    time_t start;
-
-time_t wake_tt = mktime(&wakeTM);
-
-snprintf ( wakechar, 40, "Next wake:\n %s",ctime(&wake_tt));
-
-  // Note: Key name is limited to 15 chars.
-    Serial.println("Writing data to flash before Going to sleep");
-  preferences.putBool("forcestart", remotedata.forcestart);
-  preferences.putBool("EMERGENCY_STOP", EMERGENCY_STOP);
-  preferences.putULong("pumptime", remotedata.pumptime);
-  preferences.putUShort("humidityth", remotedata.humidityth);
-   ref_voltage_18650 =preferences.putFloat("ref_voltage_18650", 1.042);
-      ref_voltage_lead =preferences.putFloat("ref_voltage_lead", 3.388);
-      remotedata.external_pump=preferences.getBool("external_pump", false);
-  preferences.putULong("watertick", sensorsdata.watertick);
-  preferences.putString("lastactive", sensorsdata.lastactive);
-  // Close the Preferences
-  preferences.end();
-  Serial.println("Going to sleep now");
-    Serial.println("boot counter:");
-  Serial.println(bootCount);
-          client.publish("telemetry","going to sleep");
-          client.publish("telemetry",wakechar);
-  delay(1000);
-  Serial.flush();
-  esp_deep_sleep_start();
-}
 
 }
