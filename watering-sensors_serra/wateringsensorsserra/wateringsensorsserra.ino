@@ -166,6 +166,7 @@ struct remotedata_STRUCT
   volatile float measured_18650 = 4.2;
   volatile float measured_lead = 12.7;
 } remotedata;
+const unsigned long MAX_PUMP_TIME=30*60*1000;
 
 unsigned short Hour;
 unsigned short humM,humm;
@@ -603,7 +604,9 @@ sensorsdata.lastactive[sizeof(sensorsdata.lastactive) - 1] = 0;
    delay(15*1000);
    digitalWrite(RelayWaterControll, LOW);
   startcounter+=1;
-  sensorsdata.watertick=millis();
+  //if (!wateringon){
+      sensorsdata.watertick=millis();
+  //}
 }
 
 void water_off(){
@@ -879,15 +882,26 @@ if (millis()-LastSensors>30*1000){
 sensors_reading();
 }
 
-if (remotedata.forcestart && !remotedata.external_pump){
+if (remotedata.forcestart && !remotedata.external_pump&&!wateringon){
     printLocalTime();
  //sensorsdata.lastactive=*asctime(&tm);
   water_on();
         EMERGENCY_STOP=false;
 Serial.println("Avvio innaffiatura per comando da remoto");
+client.publish("telemetry", "Avvio innaffiatura per forcestart=true");
+
 }
         else{
-if (sensorsdata.hum1 > remotedata.humidityth && sensorsdata.temp1*100>1000 && !wateringon && Hour==WATERING_HOUR && !EMERGENCY_STOP && !remotedata.external_pump) {
+
+      if (remotedata.forcestart&&millis()-sensorsdata.watertick>=MAX_PUMP_TIME){
+  water_off();
+        EMERGENCY_STOP=true;
+Serial.println("Fermo pompa per troppo tempo acceso");
+   client.publish("telemetry", "Avvio innaffiatura per pompa accesa troppo tempo");
+
+}
+
+if (!wateringon&&sensorsdata.hum1 > remotedata.humidityth && sensorsdata.temp1*100>1000 && !wateringon && Hour==WATERING_HOUR && !EMERGENCY_STOP && !remotedata.external_pump) {
     printLocalTime();
 //     sensorsdata.lastactive=*asctime(&tm);
  water_on();
@@ -897,7 +911,7 @@ Serial.println("Avvio innaffiatura per umidita terreno bassa e temperatura sopra
              client.publish("telemetry", "Avvio innaffiatura per umidita terreno bassa e temperatura sopra soglia");
 }
               else{
-  if (sensorsdata.hum1>remotedata.humidityth && !wateringon && Hour!=WATERING_HOUR && !EMERGENCY_STOP && sensorsdata.temp1*100<1000 && !remotedata.external_pump){
+  if (!wateringon&&sensorsdata.hum1>remotedata.humidityth && !wateringon && Hour!=WATERING_HOUR && !EMERGENCY_STOP && sensorsdata.temp1*100<1000 && !remotedata.external_pump){
           Serial.println("Bassa umidita ma temperatura sotto soglia");          //
   }
                     else{
@@ -905,13 +919,13 @@ Serial.println("Avvio innaffiatura per umidita terreno bassa e temperatura sopra
           Serial.println("Bassa umidita ma non e' l'ora di innaffiare");          //
   }
                          else{
-    if (EMERGENCY_STOP){
+    if (EMERGENCY_STOP&&wateringon){
 water_off();
                 Serial.println("EMERGENCY_STOP");          //
         client.publish("telemetry","EMERGENCY_STOP!!!");
     }
                               else{
-      if (remotedata.external_pump){
+      if (remotedata.external_pump&&!wateringon){
         Serial.println("external_pump setup");          //
         client.publish("telemetry","external_pump setup");
            digitalWrite(RelayValveControll, LOW);
