@@ -226,7 +226,8 @@ void print_wakeup_reason(){
 void setup_wifi() {
  
   WiFi.mode(WIFI_STA);
-  delay(500);
+  //delay(500);
+    for (unsigned long tmp=millis();millis()-tmp<=5*100;){}
   //search for best bssid
     byte available_networks = WiFi.scanNetworks();
               Serial.println("Available network");
@@ -275,7 +276,8 @@ prevRssi = 0;
 Serial.println(WiFi.status());
 WiFi.printDiag(Serial);
   while (WiFi.status() != WL_CONNECTED) {
-    delay(1000);
+     for (unsigned long tmp=millis();millis()-tmp<=1*1000;){}
+    //delay(1000);
     Serial.print(".");
   }
 
@@ -497,7 +499,8 @@ void setup_time () {
     Serial.println("\nWaiting for time");
   while (!time(nullptr)) {
     Serial.print(".");
-    delay(1000);
+    //delay(1000);
+      for (unsigned long tmp=millis();millis()-tmp<=1*1000;){}
   }
   printLocalTime();
 }
@@ -571,7 +574,8 @@ setup_wifi();
           time(&now_tt);
 localtime_r(&now_tt,&epochstart_tm);
        Serial.println("setting epochstart");
-       delay(1000);
+       //delay(1000);
+         for (unsigned long tmp=millis();millis()-tmp<=1*1000;){}
           }
             client.publish("telemetry","epochstart");
     epochstart_str = (String) asctime(&epochstart_tm); //converting ftemp (the float variable above) to a string
@@ -601,7 +605,8 @@ void water_on(){
 
 sensorsdata.lastactive[sizeof(sensorsdata.lastactive) - 1] = 0;
    digitalWrite(RelayValveControll, LOW);
-   delay(15*1000);
+   //delay(15*1000);
+     for (unsigned long tmp=millis();millis()-tmp<=15*1000;){}
    digitalWrite(RelayWaterControll, LOW);
   startcounter+=1;
   //if (!wateringon){
@@ -611,7 +616,8 @@ sensorsdata.lastactive[sizeof(sensorsdata.lastactive) - 1] = 0;
 
 void water_off(){
           digitalWrite(RelayWaterControll, HIGH);
-          delay(5*1000);
+           for (unsigned long tmp=millis();millis()-tmp<=5*1000;){}
+        //  delay(5*1000);
              digitalWrite(RelayValveControll, HIGH);
           client.publish("telemetry", "watering off");
 Serial.println("watering off!!!");
@@ -629,7 +635,8 @@ void tune_Vref_18650(){
       somma += adc1_get_raw(ADC1_CHANNEL_6);
          // Serial.println(" somma");
 //Serial.println(somma);
-      delay(100);
+  for (unsigned long tmp=millis();millis()-tmp<=1*100;){}
+      //delay(100);
     }
 //Serial.println(" adc1_get_raw(ADC1_CHANNEL_6");
 //Serial.println(adc1_get_raw(ADC1_CHANNEL_6));
@@ -651,7 +658,8 @@ void tune_Vref_lead(){
       somma += adc1_get_raw(ADC1_CHANNEL_7);
          // Serial.println(" somma");
 //Serial.println(somma);
-      delay(100);
+  for (unsigned long tmp=millis();millis()-tmp<=1*100;){}
+     // delay(100);
     }
 //Serial.println(" adc1_get_raw(ADC1_CHANNEL_6");
 //Serial.println(adc1_get_raw(ADC1_CHANNEL_6));
@@ -676,7 +684,8 @@ void measure_voltages(){
       somma += adc1_get_raw(ADC1_CHANNEL_6);
          // Serial.println(" somma");
 //Serial.println(somma);
-      delay(100);
+  for (unsigned long tmp=millis();millis()-tmp<=1*100;){}
+     // delay(100);
     }
 //Serial.println(" adc1_get_raw(ADC1_CHANNEL_6");
 //Serial.println(adc1_get_raw(ADC1_CHANNEL_6));
@@ -710,7 +719,8 @@ somma=0;
 //  Serial.println(" adc1_get_raw(ADC1_CHANNEL_6 at 13.4");
 //Serial.println(adc1_get_raw(ADC1_CHANNEL_6));
       somma += adc1_get_raw(ADC1_CHANNEL_7);
-      delay(100);
+        for (unsigned long tmp=millis();millis()-tmp<=1*100;){}
+      //delay(100);
     }
     val=somma/(float)100;
   // Determine voltage at ADC input
@@ -929,7 +939,8 @@ water_off();
         Serial.println("external_pump setup");          //
         client.publish("telemetry","external_pump setup");
            digitalWrite(RelayValveControll, LOW);
-   delay(15*1000);
+  // delay(15*1000);
+  for (unsigned long tmp=millis();millis()-tmp<=15*1000;){}
       }
                                       else{
         if (!remotedata.forcestart&&wateringon){
@@ -1111,7 +1122,9 @@ snprintf ( wakechar, 40, "Next wake:\n %s",ctime(&wake_tt));
   Serial.println(bootCount);
           client.publish("telemetry","going to sleep");
           client.publish("telemetry",wakechar);
-  delay(1000);
+  //delay(1000);
+    for (unsigned long tmp=millis();millis()-tmp<=1*1000;){}
+
   Serial.flush();
   esp_deep_sleep_start();
 }
