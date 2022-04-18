@@ -886,7 +886,7 @@ if (remotedata.forcestart && !remotedata.external_pump){
         EMERGENCY_STOP=false;
 Serial.println("Avvio innaffiatura per comando da remoto");
 }
-else{
+        else{
 if (sensorsdata.hum1 > remotedata.humidityth && sensorsdata.temp1*100>1000 && !wateringon && Hour==WATERING_HOUR && !EMERGENCY_STOP && !remotedata.external_pump) {
     printLocalTime();
 //     sensorsdata.lastactive=*asctime(&tm);
@@ -896,42 +896,48 @@ if (sensorsdata.hum1 > remotedata.humidityth && sensorsdata.temp1*100>1000 && !w
 Serial.println("Avvio innaffiatura per umidita terreno bassa e temperatura sopra soglia");
              client.publish("telemetry", "Avvio innaffiatura per umidita terreno bassa e temperatura sopra soglia");
 }
-else{
+              else{
   if (sensorsdata.hum1>remotedata.humidityth && !wateringon && Hour!=WATERING_HOUR && !EMERGENCY_STOP && sensorsdata.temp1*100<1000 && !remotedata.external_pump){
           Serial.println("Bassa umidita ma temperatura sotto soglia");          //
   }
-  else{
+                    else{
   if (sensorsdata.hum1>remotedata.humidityth && !wateringon && !EMERGENCY_STOP && sensorsdata.temp1*100>1000 && !remotedata.external_pump){
           Serial.println("Bassa umidita ma non e' l'ora di innaffiare");          //
   }
-  else{
+                         else{
     if (EMERGENCY_STOP){
 water_off();
                 Serial.println("EMERGENCY_STOP");          //
         client.publish("telemetry","EMERGENCY_STOP!!!");
     }
-    else{
+                              else{
       if (remotedata.external_pump){
         Serial.println("external_pump setup");          //
         client.publish("telemetry","external_pump setup");
            digitalWrite(RelayValveControll, LOW);
    delay(15*1000);
       }
-      else{
+                                      else{
         if (!remotedata.forcestart&&wateringon){
           Serial.println("turning off from forcestart");          //
         client.publish("telemetry","turning off from forcestart");
         }
-        else{
+                                              else{
+          if (sensorsdata.hum1==0&&sensorsdata.temp1==0){
+                    Serial.println("still no sensors reading");          //
+        client.publish("telemetry","still no sensors reading");
+                                                        }
+                                                    else{
         Serial.println("unknow state??");          //
         client.publish("telemetry","unknow state??");
-        }
-      }
-    }
-  }
-  }
-}
-}
+                                                        }
+                                                  }
+                                          }
+                                  }
+                             }
+                        }
+                  }
+            }
 wateringon = ((digitalRead(RelayWaterControll) == LOW) || (digitalRead(RelayWaterControll) == 0));
 //Serial.println("internal_tick");
 //Serial.println(internal_tick);
