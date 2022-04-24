@@ -167,6 +167,7 @@ struct remotedata_STRUCT
   volatile float measured_lead = 12.7;
 } remotedata;
 const unsigned long MAX_PUMP_TIME=30*60*1000;
+bool force_switchoff,force_switchon;
 
 unsigned short Hour;
 unsigned short humM,humm;
@@ -175,7 +176,7 @@ struct sensorsdata_STRUCT
 //sensor variables
 unsigned short hum1;  // variable to store the value read
 int temp1 = 59;  // variable to store the value read
-unsigned long watertick;
+unsigned long watertick=0;
 char lastactive[25];
 } sensorsdata;
 
@@ -328,11 +329,13 @@ void callback(char* topic,byte* payload,unsigned int length) {
  if ((int)intpayload==1){
    Serial.println("intpayload");
   Serial.println(intpayload);
+  if (remotedata.forcestart==false){force_switchon=true;}
     remotedata.forcestart=true;
  }
  else{
+    if (remotedata.forcestart==true){force_switchoff=true;}
     Serial.println("intpayload");
-  Serial.println(intpayload);
+  Serial.println((int)intpayload);
       remotedata.forcestart=false;
  }
     }
@@ -539,7 +542,7 @@ void setup() {
       remotedata.external_pump=preferences.getBool("external_pump", false);
     remotedata.pumptime = preferences.getULong("pumptime", 270000);
     remotedata.humidityth = preferences.getUShort("humidityth", 1600);
-    sensorsdata.watertick = preferences.getULong("watertick", 0);
+    //sensorsdata.watertick = preferences.getULong("watertick", 0);
     String tmp=preferences.getString("lastactive", "never");
     //int tmp_l = tmp.length();
     strcpy(sensorsdata.lastactive, tmp.c_str());
@@ -593,9 +596,7 @@ Serial.println("Dallas Temperature IC Control Library Demo");
  pinMode(RelayValveControll, OUTPUT);
  digitalWrite(RelayValveControll, HIGH);
  //           digitalWrite(RelayValveControll, LOW);
-
       adcAttachPin(humpin);
-
 }
 
 void water_on(){
@@ -892,27 +893,23 @@ if (millis()-LastSensors>30*1000){
 sensors_reading();
 }
 
-if (remotedata.forcestart && !remotedata.external_pump&&!wateringon){
+if (remotedata.forcestart && !remotedata.external_pump && !wateringon && force_switchon){
   //  printLocalTime();
  //sensorsdata.lastactive=*asctime(&tm);
   water_on();
         EMERGENCY_STOP=false;
 Serial.println("Avvio innaffiatura per comando da remoto");
 client.publish("telemetry", "Avvio innaffiatura per forcestart=true");
-
 }
         else{
-
       if (wateringon&&remotedata.forcestart&&(millis()-sensorsdata.watertick)>=MAX_PUMP_TIME){
   water_off();
         EMERGENCY_STOP=true;
         remotedata.forcestart=0;
 Serial.println("Fermo pompa per troppo tempo acceso");
    client.publish("telemetry", "Interompo innaffiatura per pompa accesa troppo tempo");
-
 }else{
-
-if (!remotedata.forcestart&&sensorsdata.hum1 > remotedata.humidityth && sensorsdata.temp1*100>1000 && !wateringon && Hour==WATERING_HOUR && !EMERGENCY_STOP && !remotedata.external_pump) {
+if (!remotedata.forcestart && sensorsdata.hum1 > remotedata.humidityth && sensorsdata.temp1*100>1000 && !wateringon && Hour==WATERING_HOUR && !EMERGENCY_STOP && !remotedata.external_pump) {
     printLocalTime();
 //     sensorsdata.lastactive=*asctime(&tm);
  water_on();
@@ -922,21 +919,21 @@ Serial.println("Avvio innaffiatura per umidita terreno bassa e temperatura sopra
              client.publish("telemetry", "Avvio innaffiatura per umidita terreno bassa e temperatura sopra soglia");
 }
               else{
-  if (!wateringon&&sensorsdata.hum1>remotedata.humidityth && Hour=WATERING_HOUR && !EMERGENCY_STOP && sensorsdata.temp1*100<1000 && !remotedata.external_pump&&!wateringon){
+  if (!wateringon && sensorsdata.hum1>remotedata.humidityth && Hour==WATERING_HOUR && !EMERGENCY_STOP && sensorsdata.temp1*100<1000 && !remotedata.external_pump){
           Serial.println("Bassa umidita ma temperatura sotto soglia alla watering_hour");          //
   }
                     else{
-  if (sensorsdata.hum1>remotedata.humidityth && !wateringon && !EMERGENCY_STOP && sensorsdata.temp1*100>1000 && !remotedata.external_pump&&Hour!=WATERING_HOUR){
+  if (sensorsdata.hum1>remotedata.humidityth && !wateringon && !EMERGENCY_STOP && sensorsdata.temp1*100>1000 && !remotedata.external_pump && Hour!=WATERING_HOUR){
           Serial.println("Bassa umidita ma non e' l'ora di innaffiare");          //
   }
                          else{
-    if (EMERGENCY_STOP&&wateringon&&!remotedata.forcestart){
+    if (EMERGENCY_STOP && wateringon && !remotedata.forcestart){
 water_off();
                 Serial.println("EMERGENCY_STOP");          //
         client.publish("telemetry","EMERGENCY_STOP!!!");
     }
                               else{
-      if (!remotedata.forcestart&&remotedata.external_pump&&!wateringon){
+      if (!remotedata.forcestart && remotedata.external_pump && !wateringon){
         Serial.println("external_pump setup");          //
         client.publish("telemetry","external_pump setup");
            digitalWrite(RelayValveControll, LOW);
@@ -944,58 +941,64 @@ water_off();
   for (unsigned long tmp=millis();millis()-tmp<=15*1000;){}
       }
                                       else{
-        if (!remotedata.forcestart&&wateringon){
+        if (!remotedata.forcestart && wateringon && force_switchoff){
           Serial.println("turning off from forcestart");          //
         client.publish("telemetry","turning off from forcestart");
         }
                                               else{
-          if (sensorsdata.hum1==0&&sensorsdata.temp1==0){
+          if (sensorsdata.hum1<=0 && sensorsdata.temp1<=0){
                     Serial.println("still no sensors reading");          //
         client.publish("telemetry","still no sensors reading");
-                                                        }
-                                                    else{
-                                                        if (remotedata.forcestart&&wateringon){
-                                                       Serial.println("watering due to forcestart");          //
-                                                      client.publish("telemetry","watering due to forcestart");
-                                                            if (EMERGENCY_STOP)
-                                                            {
-                                                               Serial.println("EMERGENCY_STOP but watering due to forcestart");          //
-                                                      client.publish("telemetry","EMERGENCY_STOP but watering due to forcestart");
-                                                            }
-                                                        }
-                                                        else{
-                                                           if (remotedata.forcestart&&remotedata.external_pump){
-                                                       Serial.println("conflicting forcestart and external_pump: clean forcestart and setting up for external pump");          //
-                                                      client.publish("telemetry","conflicting forcestart and external_pump: clean forcestart and setting up for external pump");
-                                                      water_off();
-                                                      remotedata.forcestart=0;
-                                                       digitalWrite(RelayValveControll, LOW);
+                                }
+                         else{
+               if (remotedata.forcestart && wateringon){
+            Serial.println("watering due to forcestart");          //
+           client.publish("telemetry","watering due to forcestart");
+                 if (EMERGENCY_STOP)
+                 {
+              Serial.println("EMERGENCY_STOP but watering due to forcestart");          //
+           client.publish("telemetry","EMERGENCY_STOP but watering due to forcestart");
+                }
+                     }
+                 else{
+                 if (remotedata.forcestart && remotedata.external_pump){
+              Serial.println("conflicting forcestart and external_pump: clean forcestart and setting up for external pump");          //
+             client.publish("telemetry","conflicting forcestart and external_pump: clean forcestart and setting up for external pump");
+             water_off();
+           remotedata.forcestart=0;
+          digitalWrite(RelayValveControll, LOW);
   // delay(15*1000);
   for (unsigned long tmp=millis();millis()-tmp<=15*1000;){}
                                                         }
                                                         else
                                                         {
-                                                   if (!remotedata.forcestart&&sensorsdata.hum1 <= remotedata.humidityth && wateringon && !EMERGENCY_STOP && !remotedata.external_pump){
-                                                        Serial.println("REached humidity threshold in another hour or temp below th: watering off");          //
-                                                      client.publish("telemetry","REached humidity threshold in another hour or temp below th: watering off");
-                                                      water_off();
-                                                   }
-                                                   else
-                                                        {
-                                                       Serial.println("unknow state??");          //
-                                                         client.publish("telemetry","unknow state??");
-                                                      }
-                                                        }
-                                                        }
-                                                    }
-                                                    }
-                                                }
-                                          }
-                                  }
-                             }
-                        }
+             if (!remotedata.forcestart && sensorsdata.hum1 <= remotedata.humidityth && wateringon && !EMERGENCY_STOP && !remotedata.external_pump){
+             Serial.println("REached humidity threshold in another hour or temp below th: watering off");          //
+              client.publish("telemetry","REached humidity threshold in another hour or temp below th: watering off");
+              water_off();
+                 }
+                 else
+                    {
+                      if (!remotedata.forcestart && sensorsdata.hum1 <= remotedata.humidityth && !wateringon && !EMERGENCY_STOP && !remotedata.external_pump){
+                       Serial.println("Humidity below threshold e tutto va bene");          //
+              client.publish("telemetry","Humidity below threshold e tutto va bene");
+                      }
+                      else{
+                   Serial.println("unknow state??");          //
+                   client.publish("telemetry","unknow state??");
+                      }
+                    }
+                   }
                   }
-            }
+                 }
+                }
+               }
+              }
+             }
+          }
+         }
+        }
+      }
               for (unsigned long tmp=millis();millis()-tmp<=1*1000;){}
               
 wateringon = ((digitalRead(RelayWaterControll) == LOW) || (digitalRead(RelayWaterControll) == 0));
@@ -1022,11 +1025,11 @@ wateringon = ((digitalRead(RelayWaterControll) == LOW) || (digitalRead(RelayWate
 
 if ((millis()-sensorsdata.watertick<=remotedata.pumptime)&&(wateringon)){
 Serial.println("watering on");
+Serial.println("millis()-sensorsdata.watertick");
 Serial.println(millis()-sensorsdata.watertick);
 }
 
   if (millis() - lastMsg > 20*1000) {
-
     lastMsg = millis();
   //  lastMsg = internal_tick;
     //++value;
@@ -1049,7 +1052,6 @@ Serial.println(millis()-sensorsdata.watertick);
 if (millis()-prev_read>=20*1000){
 
 if (sensorsdata.watertick!=0){
-
 //  epocheau= (unsigned long)(mktime(&epochstart_tm)+sensorsdata.watertick/1000);
 //  epocheau_tm=(time_t)epocheau;
      // localtime_r(&epocheau_tm, &tmepocheeau);// update the structure tm with the current time
@@ -1109,7 +1111,7 @@ if (wateringon){
 Serial.println(humm);
 Serial.println(humM);
 
-    if (humM-humm<1000&&((millis()-sensorsdata.watertick)>=3*60*1000)&&!remotedata.forcestart){
+    if (humM-humm<1000 && ((millis()-sensorsdata.watertick)>=3*60*1000) && !remotedata.forcestart){
         EMERGENCY_STOP=true;
   }
   }
@@ -1121,24 +1123,17 @@ startcounter=0;
 }
 
 if ((millis()-sleep_timer>=5*60*1000)&&!wateringon&&!remotedata.forcestart){
+  
     preferences.begin("remotedata", false);
-
   // Remove all preferences under the opened namespace
   //preferences.clear();
-
-
  struct tm wakeTM = *localtime(&now_tt);
 char wakechar[40];
-
 wakeTM.tm_sec += TIME_TO_SLEEP;
-
 //struct tm startTM;
 //    time_t start;
-
 time_t wake_tt = mktime(&wakeTM);
-
 snprintf ( wakechar, 40, "Next wake:\n %s",ctime(&wake_tt));
-
   // Note: Key name is limited to 15 chars.
     Serial.println("Writing data to flash before Going to sleep");
   preferences.putBool("forcestart", remotedata.forcestart);
@@ -1148,7 +1143,7 @@ snprintf ( wakechar, 40, "Next wake:\n %s",ctime(&wake_tt));
    ref_voltage_18650 =preferences.putFloat("ref_voltage_18650", 1.042);
       ref_voltage_lead =preferences.putFloat("ref_voltage_lead", 3.388);
       remotedata.external_pump=preferences.getBool("external_pump", false);
-  preferences.putULong("watertick", sensorsdata.watertick);
+  //preferences.putULong("watertick", sensorsdata.watertick);
   preferences.putString("lastactive", sensorsdata.lastactive);
   // Close the Preferences
   preferences.end();
