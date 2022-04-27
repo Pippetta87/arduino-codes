@@ -3,6 +3,7 @@
 00:08:19.394 -> This chip has 2 cores
 00:08:19.394 -> Chip ID: 2292260
 */
+
 #include <Preferences.h>
 Preferences preferences;
 
@@ -145,13 +146,17 @@ const int   daylightOffset_sec = 0;  //Replace with your daylight offset (second
 // Global variables for Time
 // time_t rawtime;// global holding current datetime as Epoch
 
-String  hum_str,temp_str,watertick_str, forcestart_str, pumptime_str, humidityth_str,epochstart_str,epocheau_str, measured_18650_str, measured_lead_str;
-char temp1char[6];
-char hum1char[6];
-char watertickchar[10];
-char humiditythchar[6],pumptimechar[20],forcestartchar[6], measured_18650char[5],measured_leadchar[6];
-char epochstartchar[30];
-char epocheauchar[30];
+//String  hum_str,temp_str,watertick_str, forcestart_str, pumptime_str, humidityth_str,epochstart_str,epocheau_str, measured_18650_str, measured_lead_str;
+//char temp1char[6];
+//char hum1char[6];
+//char watertickchar[10];
+char *watertickchar;
+char forcestartchar[6];
+//char pumptimechar[20],humiditythchar[6],measured_18650char[5],measured_leadchar[6];
+char *pumptimechar,*humiditythchar,*measured_18650char,*measured_leadchar,*temp1char,*hum1char, *epocheauchar;
+//char epochstartchar[30];
+char *epochstartchar;
+//char epocheauchar[30];
 //control variables for nano
 //bool forcestart=false;
 //int pumptime=270000;
@@ -162,7 +167,7 @@ struct remotedata_STRUCT
  volatile bool forcestart = false;
   volatile bool external_pump = false;
  volatile unsigned long pumptime = 300*1000;
- volatile unsigned short humidityth = 1600;
+ volatile unsigned short humidityth = 1700;
   volatile float measured_18650 = 4.2;
   volatile float measured_lead = 12.7;
 } remotedata;
@@ -293,7 +298,8 @@ WiFi.printDiag(Serial);
 void callback(char* topic,byte* payload,unsigned int length) {
               Serial.println("received mqtt payload");
    volatile unsigned long tmp=0;
-   volatile double intpayload=0;
+  // volatile double intpayload=0;
+    size_t sz;
    //byte * payload_str;
    //char *payloadchar;
   Serial.print("Message arrived [");
@@ -315,10 +321,10 @@ void callback(char* topic,byte* payload,unsigned int length) {
  //payload_str[length]='\0';
 //payload_str=(char *)payload_str;
      // payload_str.toCharArray(payloadchar, payload_str.length()); //packaging up the data to publish to mqtt whoa...
-            Serial.println("line 190");
+       //     Serial.println("line 190");
 // if (payload_str[0]=='t'||payloadchar[0]=='f'){
     //intpayload = atoi((char *)payload);
-        intpayload = atof((char *)payload);
+        //intpayload = atof((char *)payload);
     Serial.println("atoi((char *)payload)");
       if (aux==1){
       client.publish("telemetry","Arduino think Received message on topic forcestart");
@@ -326,20 +332,19 @@ void callback(char* topic,byte* payload,unsigned int length) {
 //                                      client.publish("telemetry",intpayload);
                                       Serial.println("payload_str");
  // Serial.println((char *)payload_str);
- if ((int)intpayload==1){
-   Serial.println("intpayload");
-  Serial.println(intpayload);
+ if ((int)payload==1){
+   Serial.println("payload");
+  Serial.println((int)payload);
   if (remotedata.forcestart==false){force_switchon=true;}
     remotedata.forcestart=true;
  }
  else{
     if (remotedata.forcestart==true){force_switchoff=true;}
-    Serial.println("intpayload");
-  Serial.println((int)intpayload);
+    Serial.println("payload");
+  Serial.println((int)payload);
       remotedata.forcestart=false;
  }
-    }
- //}else{
+ }
  
   Serial.println("strncmp(topic, topic2, strlen(topic2))");
 aux=(strncmp(topic, topic2, strlen(topic2))==0);
@@ -347,33 +352,38 @@ aux=(strncmp(topic, topic2, strlen(topic2))==0);
       Serial.println(aux);
       if (aux==1){
       client.publish("telemetry","Arduino think Received message on topic pumptime");
-             remotedata.pumptime=intpayload;
-          Serial.println("changed to");
+      sz = snprintf(NULL, 0, (char*)payload);
+             remotedata.pumptime=strtoul((char*)payload,NULL,sz);
+          Serial.println("remotedata.pumptime changed to");
           Serial.println(remotedata.pumptime);
-              pumptime_str[pumptime_str.length()] = '\0'; // Make payload a string by NULL terminating it.
-         pumptime_str.toCharArray(pumptimechar, pumptime_str.length() + 1); //packaging up the data to publish to mqtt whoa...
+         //pumptime_str[pumptime_str.length()] = '\0'; // Make payload a string by NULL terminating it.
+         //pumptime_str.toCharArray(pumptimechar, pumptime_str.length() + 1); //packaging up the data to publish to mqtt whoa...
+           pumptimechar=ul2chara("%ul",remotedata.pumptime);
                 client.publish("telemetry","Arduino think Received message on topic pumptime=");
                                 client.publish("telemetry",pumptimechar);
     }
+
         Serial.println("strncmp(topic, topic3, strlen(topic3))");
 aux=(strncmp(topic, topic3, strlen(topic3))==0);
       tmp=tmp+aux;
       Serial.println(aux);
       if (aux==1){
       client.publish("telemetry","Arduino think Received message on topic humidityth");
-   remotedata.humidityth = intpayload;
+sz = snprintf(NULL, 0, (char*)payload);
+   remotedata.humidityth=(unsigned short)strtoul((char*)payload,NULL,sz);
+    Serial.println("remotedata.humidityth changed to");
     Serial.println(remotedata.humidityth);
-    humidityth_str=(String) intpayload;
-    humidityth_str[humidityth_str.length()] = '\0'; // Make payload a string by NULL terminating it.
-    humidityth_str.toCharArray(humiditythchar, humidityth_str.length() + 1); //packaging up the data to publish to mqtt whoa...
+   // humidityth_str=(String) intpayload;
+   // humidityth_str[humidityth_str.length()] = '\0'; // Make payload a string by NULL terminating it.
+   // humidityth_str.toCharArray(humiditythchar, humidityth_str.length() + 1); //packaging up the data to publish to mqtt whoa...
+     humiditythchar=us2chara("%us",remotedata.humidityth);        
                 client.publish("telemetry","Arduino think Received message on topic humidityth=");
-                                client.publish("telemetry",humiditythchar);
-                                Serial.println("humiditythchar");
-                                Serial.println(humiditythchar);
-
-
+                 client.publish("telemetry",humiditythchar);
+                 Serial.println("humiditythchar");
+                Serial.println(humiditythchar);
     }
  //}
+ 
 Serial.println("strncmp(topic, topic4, strlen(topic4))");
 aux=(strncmp(topic, topic4, strlen(topic4))==0);
       tmp=tmp+aux;
@@ -386,7 +396,7 @@ aux=(strncmp(topic, topic4, strlen(topic4))==0);
  //                                     Serial.println("payload_str");
  // Serial.println((char *)payload_str);
            Serial.println("topic external pump :waiting understand payload");          //
- if ((int)intpayload==1){
+ if ((int)payload==1){
    //Serial.println("intpayload");
  // Serial.println(intpayload);
     remotedata.external_pump=true;
@@ -402,7 +412,7 @@ aux=(strncmp(topic, topic4, strlen(topic4))==0);
         client.publish("telemetry","external_pump unset");
            digitalWrite(RelayValveControll, HIGH);
  }
-    }
+ }
     
     Serial.println("strncmp(topic, topic5, strlen(topic5))");
 aux=(strncmp(topic, topic5, strlen(topic5))==0);
@@ -410,33 +420,32 @@ aux=(strncmp(topic, topic5, strlen(topic5))==0);
       Serial.println(aux);
       if (aux==1){
       client.publish("telemetry","Arduino think Received message on topic measured_18650");
-   remotedata.measured_18650 = intpayload;
+   remotedata.measured_18650 = strtof((char*)payload, NULL);
+       Serial.println("remotedata.measured_18650");
     Serial.println(remotedata.measured_18650);
-    measured_18650_str=(String) intpayload;
-    measured_18650_str[measured_18650_str.length()] = '\0'; // Make payload a string by NULL terminating it.
-    measured_18650_str.toCharArray(measured_18650char, measured_18650_str.length() + 1); //packaging up the data to publish to mqtt whoa...
+    measured_18650char=f2chara("%.3f",remotedata.measured_18650);
+    //measured_18650_str=(String) intpayload;
+    //measured_18650_str[measured_18650_str.length()] = '\0'; // Make payload a string by NULL terminating it.
+    //measured_18650_str.toCharArray(measured_18650char, measured_18650_str.length() + 1); //packaging up the data to publish to mqtt whoa... 
                 client.publish("telemetry","Arduino think Received message on topic measured_18650=");
                                 client.publish("telemetry",measured_18650char);
-                                Serial.println("measured_18650char");
-                                Serial.println(measured_18650char);
-
     }
+    
       Serial.println("strncmp(topic, topic6, strlen(topic6))");
 aux=(strncmp(topic, topic6, strlen(topic6))==0);
       tmp=tmp+aux;
       Serial.println(aux);
       if (aux==1){
       client.publish("telemetry","Arduino think Received message on topic measured_lead");
-   remotedata.measured_lead = intpayload;
+    remotedata.measured_lead =  strtof((char*)payload,NULL);
+      Serial.println("remotedata.measured_lead");
     Serial.println(remotedata.measured_lead);
-    measured_lead_str=(String) intpayload;
-    measured_lead_str[measured_18650_str.length()] = '\0'; // Make payload a string by NULL terminating it.
-    measured_lead_str.toCharArray(measured_leadchar, measured_lead_str.length() + 1); //packaging up the data to publish to mqtt whoa...
-                client.publish("telemetry","Arduino think Received message on topic measured_leadchar=");
-                                client.publish("telemetry",measured_leadchar);
-                                Serial.println("measured_leadchar");
-                                Serial.println(measured_leadchar);
-
+    measured_leadchar=f2chara("%f.3",remotedata.measured_lead);
+    //measured_lead_str=(String) intpayload;
+    //measured_lead_str[measured_18650_str.length()] = '\0'; // Make payload a string by NULL terminating it.
+    //measured_lead_str.toCharArray(measured_leadchar, measured_lead_str.length() + 1); //packaging up the data to publish to mqtt whoa...
+     client.publish("telemetry","Arduino think Received message on topic measured_leadchar=");
+     client.publish("telemetry",measured_leadchar);
     } 
   //char *topiclist = { "forcestart", "pumptime", "humidityth"};
     if (tmp==1)
@@ -581,9 +590,12 @@ localtime_r(&now_tt,&epochstart_tm);
          for (unsigned long tmp=millis();millis()-tmp<=1*1000;){}
           }
             client.publish("telemetry","epochstart");
-    epochstart_str = (String) asctime(&epochstart_tm); //converting ftemp (the float variable above) to a string
-    epochstart_str[epochstart_str.length()] = '\0';
-     epochstart_str.toCharArray(epochstartchar, epochstart_str.length()); //packaging up the data to publish to mqtt whoa...
+
+
+            epochstartchar=str2chara("%s",asctime(&epochstart_tm));
+    //epochstart_str = (String) asctime(&epochstart_tm); //converting ftemp (the float variable above) to a string
+    //epochstart_str[epochstart_str.length()] = '\0';
+     //epochstart_str.toCharArray(epochstartchar, epochstart_str.length()); //packaging up the data to publish to mqtt whoa...
 //    char* aux=asctime(epochstart_tm);
          client.publish("telemetry", epochstartchar);
 Serial.println("Dallas Temperature IC Control Library Demo");
@@ -860,6 +872,66 @@ void ftoa(float n, char* res, int afterpoint)
     }
 }
 
+char* ul2chara(char* A, unsigned long B){
+char *buf;
+size_t sz;
+sz = snprintf(NULL, 0, A, B);
+buf = (char *)malloc(sz + 1); /* make sure you check for != NULL in real code */
+snprintf(buf, sz+1, A, B);
+return buf;
+}
+
+char* f2chara(char* A, float B){
+char *buf;
+size_t sz;
+sz = snprintf(NULL, 0, A, B);
+buf = (char *)malloc(sz + 1); /* make sure you check for != NULL in real code */
+snprintf(buf, sz+1, A, B);
+return buf;
+}
+
+char* us2chara(char *A, unsigned short B){
+char *buf;
+size_t sz;
+sz = snprintf(NULL, 0, A, B);
+buf = (char *)malloc(sz + 1); /* make sure you check for != NULL in real code */
+snprintf(buf, sz+1, A, B);
+return buf;
+}
+
+char* str2chara(char* A, char* B){
+char *buf;
+size_t sz;
+sz = snprintf(NULL, 0, A, B);
+buf = (char *)malloc(sz + 1); /* make sure you check for != NULL in real code */
+snprintf(buf, sz+1, A, B);
+return buf;
+}
+
+/*
+d or i  Signed decimal integer  392
+u Unsigned decimal integer  7235
+o Unsigned octal  610
+x Unsigned hexadecimal integer  7fa
+X Unsigned hexadecimal integer (uppercase)  7FA
+f Decimal floating point, lowercase 392.65
+F Decimal floating point, uppercase 392.65
+e Scientific notation (mantissa/exponent), lowercase  3.9265e+2
+E Scientific notation (mantissa/exponent), uppercase  3.9265E+2
+g Use the shortest representation: %e or %f 392.65
+G Use the shortest representation: %E or %F 392.65
+a Hexadecimal floating point, lowercase -0xc.90fep-2
+A Hexadecimal floating point, uppercase -0XC.90FEP-2
+c Character a
+s String of characters  sample
+p Pointer address b8000000
+n Nothing printed.
+The corresponding argument must be a pointer to a signed int.
+The number of characters written so far is stored in the pointed location.  
+% A % followed by another % character will write a single % to the stream.  %
+*/
+
+
 void loop() {
 
 if (millis()-LastVolt>2*60*1000){
@@ -1037,12 +1109,14 @@ Serial.println(millis()-sensorsdata.watertick);
     //snprintf(msg, MSG_BUFFER_SIZE, "hello world #%ld", String.toCharArray(asctime(timeinfo)));
   //asctime(timeinfo).toCharArray(msg, 24);
        // Serial.print(aux);
-     temp_str = (String) (sensorsdata.temp1/100); //converting ftemp (the float variable above) to a string
-     temp_str[temp_str.length()] = '\0';
-    temp_str.toCharArray(temp1char, temp_str.length()+1); //packaging up the data to publish to mqtt whoa...
- hum_str = (String) sensorsdata.hum1; //converting ftemp (the float variable above) to a string
-     hum_str[hum_str.length()] = '\0';
-    hum_str.toCharArray(hum1char, hum_str.length()+1); //packaging up the data to publish to mqtt whoa...
+       temp1char=f2chara("%f.3",sensorsdata.temp1/(float)100);
+    // temp_str = (String) (sensorsdata.temp1/100); //converting ftemp (the float variable above) to a string
+   //  temp_str[temp_str.length()] = '\0';
+   // temp_str.toCharArray(temp1char, temp_str.length()+1); //packaging up the data to publish to mqtt whoa...
+hum1char=us2chara("%us",sensorsdata.hum1);
+// hum_str = (String) sensorsdata.hum1; //converting ftemp (the float variable above) to a string
+//    hum_str[hum_str.length()] = '\0';
+//   hum_str.toCharArray(hum1char, hum_str.length()+1); //packaging up the data to publish to mqtt whoa...
         Serial.println("Publish message to hum1");
  client.publish("hum1", hum1char);
          Serial.println("Publish message to temp1");
@@ -1079,14 +1153,17 @@ if (sensorsdata.watertick!=0){
       Serial.println("");
         Serial.println("line 548");
     //epocheau_str=(String) asctime(&tmepocheeau);
-        epocheau_str=(String) sensorsdata.lastactive;
-    epocheau_str[epocheau_str.length()] = '\0';// Make payload a string by NULL terminating it.
-    epocheau_str.toCharArray(epocheauchar, epocheau_str.length() + 1);//packaging up the data to publish to mqtt whoa...
+  //      epocheau_str=(String) sensorsdata.lastactive;
+   // epocheau_str[epocheau_str.length()] = '\0';// Make payload a string by NULL terminating it.
+  //  epocheau_str.toCharArray(epocheauchar, epocheau_str.length() + 1);//packaging up the data to publish to mqtt whoa...
+    epocheauchar=str2chara("%s",sensorsdata.lastactive);
     //client.publish("telemetry","epocheauchar date/time");
      //client.publish("telemetry",epocheauchar);
-  watertick_str=(String) sensorsdata.watertick;
-    watertick_str[watertick_str.length()] = '\0';// Make payload a string by NULL terminating it.
-    watertick_str.toCharArray(watertickchar, watertick_str.length() + 1);//packaging up the data to publish to mqtt whoa...  
+ // watertick_str=(String) sensorsdata.watertick;
+ // watertick_str[watertick_str.length()] = '\0';// Make payload a string by NULL terminating it.
+  //watertick_str.toCharArray(watertickchar, watertick_str.length() + 1);//packaging up the data to publish to mqtt whoa...  
+    
+    watertickchar=ul2chara("%lu",sensorsdata.watertick);
     client.publish("telemetry","watertickchar");
      client.publish("telemetry",watertickchar);
      client.publish("lastactive",epocheauchar);
@@ -1133,7 +1210,7 @@ wakeTM.tm_sec += TIME_TO_SLEEP;
 //struct tm startTM;
 //    time_t start;
 time_t wake_tt = mktime(&wakeTM);
-snprintf ( wakechar, 40, "Next wake:\n %s",ctime(&wake_tt));
+//snprintf ( wakechar, 40, "Next wake:\n %s",ctime(&wake_tt));
   // Note: Key name is limited to 15 chars.
     Serial.println("Writing data to flash before Going to sleep");
   preferences.putBool("forcestart", remotedata.forcestart);
@@ -1151,7 +1228,9 @@ snprintf ( wakechar, 40, "Next wake:\n %s",ctime(&wake_tt));
     Serial.println("boot counter:");
   Serial.println(bootCount);
           client.publish("telemetry","going to sleep");
-          client.publish("telemetry",wakechar);
+          //client.publish("telemetry",wakechar);
+         client.publish("telemetry",str2chara("Next wake:\r %s",ctime(&wake_tt)));
+
   //delay(1000);
     for (unsigned long tmp=millis();millis()-tmp<=1*1000;){}
 
