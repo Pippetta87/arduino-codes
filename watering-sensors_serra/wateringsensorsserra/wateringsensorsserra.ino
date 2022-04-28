@@ -146,6 +146,7 @@ const int   daylightOffset_sec = 0;  //Replace with your daylight offset (second
 // Global variables for Time
 // time_t rawtime;// global holding current datetime as Epoch
 
+char const *stringformat;
 //String  hum_str,temp_str,watertick_str, forcestart_str, pumptime_str, humidityth_str,epochstart_str,epocheau_str, measured_18650_str, measured_lead_str;
 //char temp1char[6];
 //char hum1char[6];
@@ -363,7 +364,8 @@ aux=(strncmp(topic, topic2, strlen(topic2))==0);
           Serial.println(remotedata.pumptime);
          //pumptime_str[pumptime_str.length()] = '\0'; // Make payload a string by NULL terminating it.
          //pumptime_str.toCharArray(pumptimechar, pumptime_str.length() + 1); //packaging up the data to publish to mqtt whoa...
-           pumptimechar=ul2chara("%ul",remotedata.pumptime);
+           stringformat="%ul";
+           pumptimechar=ul2chara(stringformat,remotedata.pumptime);
                 client.publish("telemetry","Arduino think Received message on topic pumptime=");
                                 client.publish("telemetry",pumptimechar);
     }
@@ -381,7 +383,8 @@ sz = snprintf(NULL, 0, (char*)payload);
    // humidityth_str=(String) intpayload;
    // humidityth_str[humidityth_str.length()] = '\0'; // Make payload a string by NULL terminating it.
    // humidityth_str.toCharArray(humiditythchar, humidityth_str.length() + 1); //packaging up the data to publish to mqtt whoa...
-     humiditythchar=us2chara("%us",remotedata.humidityth);        
+     stringformat="%us";
+     humiditythchar=us2chara(stringformat,remotedata.humidityth);        
                 client.publish("telemetry","Arduino think Received message on topic humidityth=");
                  client.publish("telemetry",humiditythchar);
                  Serial.println("humiditythchar");
@@ -428,6 +431,7 @@ aux=(strncmp(topic, topic5, strlen(topic5))==0);
    remotedata.measured_18650 = strtof((char*)payload, NULL);
        Serial.println("remotedata.measured_18650");
     Serial.println(remotedata.measured_18650);
+   stringformat="%.3f";
     measured_18650char=f2chara("%.3f",remotedata.measured_18650);
     //measured_18650_str=(String) intpayload;
     //measured_18650_str[measured_18650_str.length()] = '\0'; // Make payload a string by NULL terminating it.
@@ -445,7 +449,8 @@ aux=(strncmp(topic, topic6, strlen(topic6))==0);
     remotedata.measured_lead =  strtof((char*)payload,NULL);
       Serial.println("remotedata.measured_lead");
     Serial.println(remotedata.measured_lead);
-    measured_leadchar=f2chara("%f.3",remotedata.measured_lead);
+     stringformat="%.3f";
+    measured_leadchar=f2chara(stringformat,remotedata.measured_lead);
     //measured_lead_str=(String) intpayload;
     //measured_lead_str[measured_18650_str.length()] = '\0'; // Make payload a string by NULL terminating it.
     //measured_lead_str.toCharArray(measured_leadchar, measured_lead_str.length() + 1); //packaging up the data to publish to mqtt whoa...
@@ -877,7 +882,7 @@ void ftoa(float n, char* res, int afterpoint)
     }
 }
 
-char* ul2chara(char* A, unsigned long B){
+char* ul2chara(const char* A, unsigned long B){
 char *buf;
 size_t sz;
 sz = snprintf(NULL, 0, A, B);
@@ -886,7 +891,7 @@ snprintf(buf, sz+1, A, B);
 return buf;
 }
 
-char* f2chara(char* A, float B){
+char* f2chara(const char* A, float B){
 char *buf;
 size_t sz;
 sz = snprintf(NULL, 0, A, B);
@@ -895,7 +900,7 @@ snprintf(buf, sz+1, A, B);
 return buf;
 }
 
-char* us2chara(char *A, unsigned short B){
+char* us2chara(const char *A, unsigned short B){
 char *buf;
 size_t sz;
 sz = snprintf(NULL, 0, A, B);
@@ -904,7 +909,7 @@ snprintf(buf, sz+1, A, B);
 return buf;
 }
 
-char* str2chara(char* A, char* B){
+char* str2chara(const char* A, char* B){
 char *buf;
 size_t sz;
 sz = snprintf(NULL, 0, A, B);
@@ -1004,16 +1009,25 @@ Serial.println("Avvio innaffiatura per umidita terreno bassa e temperatura sopra
              client.publish("telemetry", "Avvio innaffiatura per umidita terreno bassa e temperatura sopra soglia");
 }
               else{
-               if (!remotedata.forcestart && sensorsdata.hum1 > remotedata.humidityth && sensorsdata.temp1*100>1000 && Hour<=WATERING_HOUR+WATERING_HOUR_range&&Hour>=WATERING_HOUR-WATERING_HOUR_range&& EMERGENCY_STOP && !remotedata.external_pump) {
+               if (!remotedata.forcestart && sensorsdata.hum1 > remotedata.humidityth && (sensorsdata.temp1*100>lower_temp1th && sensorsdata.temp1*100<upper_temp1th) && (Hour<=WATERING_HOUR+WATERING_HOUR_range&&Hour>=WATERING_HOUR-WATERING_HOUR_range) && EMERGENCY_STOP && !remotedata.external_pump) {
 Serial.println("False al chech per soglia umidita determinato da emergency_stop true");
              client.publish("telemetry", "False al chech per soglia umidita determinato da emergency_stop true");
 } 
-  if (!wateringon && sensorsdata.hum1>remotedata.humidityth && Hour==WATERING_HOUR && !EMERGENCY_STOP && sensorsdata.temp1*100<1000 && !remotedata.external_pump){
-          Serial.println("Bassa umidita ma temperatura sotto soglia alla watering_hour");          //
+  if (!wateringon && sensorsdata.hum1>remotedata.humidityth && (Hour<=WATERING_HOUR+WATERING_HOUR_range&&Hour>=WATERING_HOUR-WATERING_HOUR_range) && !EMERGENCY_STOP && !(sensorsdata.temp1*100>lower_temp1th && sensorsdata.temp1*100<upper_temp1th) && !remotedata.external_pump){
+          if (sensorsdata.temp1*100<=lower_temp1th)
+          {          Serial.println("Bassa umidita ma temperatura sotto soglia alla watering_hour");          //
+                  client.publish("telemetry","Bassa umidita ma temperatura sotto soglia alla watering_hour");
+}
+                    if (sensorsdata.temp1*100>upper_temp1th)
+          {          Serial.println("Bassa umidita ma temperatura sopra soglia alla watering_hour");          //
+                  client.publish("telemetry","Bassa umidita ma temperatura sopra soglia alla watering_hour");
+}
   }
                     else{
-  if (sensorsdata.hum1>remotedata.humidityth && !wateringon && !EMERGENCY_STOP && sensorsdata.temp1*100>1000 && !remotedata.external_pump && Hour!=WATERING_HOUR){
+  if (sensorsdata.hum1>remotedata.humidityth && !wateringon && !EMERGENCY_STOP && (sensorsdata.temp1*100>lower_temp1th && sensorsdata.temp1*100<upper_temp1th) && !remotedata.external_pump && !(Hour<=WATERING_HOUR+WATERING_HOUR_range&&Hour>=WATERING_HOUR-WATERING_HOUR_range)){
           Serial.println("Bassa umidita ma non e' l'ora di innaffiare");          //
+          client.publish("telemetry","Bassa umidita ma non e' l'ora di innaffiare");
+
   }
                          else{
     if (EMERGENCY_STOP && wateringon && !remotedata.forcestart){
@@ -1075,7 +1089,6 @@ water_off();
                       else{
                    Serial.println("unknow state??");          //
                    client.publish("telemetry","unknow state??");
-                      }
                     }
                    }
                   }
@@ -1084,10 +1097,11 @@ water_off();
                }
               }
              }
+            }
+           }
           }
          }
         }
-      }
               for (unsigned long tmp=millis();millis()-tmp<=1*1000;){}
               
 wateringon = ((digitalRead(RelayWaterControll) == LOW) || (digitalRead(RelayWaterControll) == 0));
@@ -1173,14 +1187,16 @@ if (sensorsdata.watertick!=0){
   //      epocheau_str=(String) sensorsdata.lastactive;
    // epocheau_str[epocheau_str.length()] = '\0';// Make payload a string by NULL terminating it.
   //  epocheau_str.toCharArray(epocheauchar, epocheau_str.length() + 1);//packaging up the data to publish to mqtt whoa...
-    epocheauchar=str2chara("%s",sensorsdata.lastactive);
+    
+    stringformat="%s";
+    epocheauchar=str2chara(stringformat,sensorsdata.lastactive);
     //client.publish("telemetry","epocheauchar date/time");
      //client.publish("telemetry",epocheauchar);
  // watertick_str=(String) sensorsdata.watertick;
  // watertick_str[watertick_str.length()] = '\0';// Make payload a string by NULL terminating it.
   //watertick_str.toCharArray(watertickchar, watertick_str.length() + 1);//packaging up the data to publish to mqtt whoa...  
-    
-    watertickchar=ul2chara("%lu",sensorsdata.watertick);
+    stringformat="%lu";
+    watertickchar=ul2chara(stringformat,sensorsdata.watertick);
     client.publish("telemetry","watertickchar");
      client.publish("telemetry",watertickchar);
      client.publish("lastactive",epocheauchar);
