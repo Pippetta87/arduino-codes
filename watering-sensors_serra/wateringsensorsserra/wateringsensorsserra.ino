@@ -134,10 +134,10 @@ uint8_t prevRssi;
   struct tm timeinfo;//,tmepocheeau;
     struct tm tmepocheeau;
   unsigned long epocheau;//internal_tick;
-unsigned short WATERING_HOUR=15;
+unsigned short WATERING_HOUR=14;
 bool EMERGENCY_STOP=false;
 bool wateringon;// = ((digitalRead(RelayWaterControl1) == LOW) || (digitalRead(RelayWaterControl1) == 0));
- 
+unsigned short WATERING_HOUR_range=4;
 const char* ntpServer = "europe.pool.ntp.org";
 const long  gmtOffset_sec = +3600;   //Replace with your GMT offset (seconds)
 const int   daylightOffset_sec = 0;  //Replace with your daylight offset (seconds)
@@ -151,7 +151,7 @@ const int   daylightOffset_sec = 0;  //Replace with your daylight offset (second
 //char hum1char[6];
 //char watertickchar[10];
 char *watertickchar;
-char forcestartchar[6];
+//char forcestartchar[6];
 //char pumptimechar[20],humiditythchar[6],measured_18650char[5],measured_leadchar[6];
 char *pumptimechar,*humiditythchar,*measured_18650char,*measured_leadchar,*temp1char,*hum1char, *epocheauchar;
 //char epochstartchar[30];
@@ -173,7 +173,8 @@ struct remotedata_STRUCT
 } remotedata;
 const unsigned long MAX_PUMP_TIME=30*60*1000;
 bool force_switchoff,force_switchon;
-
+unsigned short hour_temp1_max=14;
+unsigned short hour_temp1_min=5;
 unsigned short Hour;
 unsigned short humM,humm;
 struct sensorsdata_STRUCT
@@ -187,7 +188,8 @@ short temp1_max = 500;
 unsigned long watertick=0;
 char lastactive[25];
 } sensorsdata;
-
+unsigned short upper_temp1th=2500;//centigradi *100
+unsigned short lower_temp1th=1000;//centigradi *100
 unsigned short tempint = 1500;
 RTC_DATA_ATTR unsigned short startcounter=0;
 
@@ -984,16 +986,28 @@ client.publish("telemetry", "Avvio innaffiatura per forcestart=true");
 Serial.println("Fermo pompa per troppo tempo acceso");
    client.publish("telemetry", "Interompo innaffiatura per pompa accesa troppo tempo");
 }else{
-if (!remotedata.forcestart && sensorsdata.hum1 > remotedata.humidityth && sensorsdata.temp1*100>1000 && !wateringon && Hour==WATERING_HOUR && !EMERGENCY_STOP && !remotedata.external_pump) {
+if (!remotedata.forcestart && sensorsdata.hum1 > remotedata.humidityth && sensorsdata.temp1*100>lower_temp1th && sensorsdata.temp1*100<upper_temp1th && Hour<=WATERING_HOUR+WATERING_HOUR_range&&Hour>=WATERING_HOUR-WATERING_HOUR_range&& !EMERGENCY_STOP && !remotedata.external_pump) {
     printLocalTime();
 //     sensorsdata.lastactive=*asctime(&tm);
+if (!wateringon){
+  Serial.println("Avvio watering relais");
+             client.publish("telemetry", "Avvio watering relais");
  water_on();
+}
+else{
+Serial.println("relais watering gia attivi");
+             client.publish("telemetry", "relais watering gia attivi");
+  }
  Serial.println("sensorsdata.lastactive=asctime(&tm)");
  Serial.println(asctime(&tm));
 Serial.println("Avvio innaffiatura per umidita terreno bassa e temperatura sopra soglia");
              client.publish("telemetry", "Avvio innaffiatura per umidita terreno bassa e temperatura sopra soglia");
 }
               else{
+               if (!remotedata.forcestart && sensorsdata.hum1 > remotedata.humidityth && sensorsdata.temp1*100>1000 && Hour<=WATERING_HOUR+WATERING_HOUR_range&&Hour>=WATERING_HOUR-WATERING_HOUR_range&& EMERGENCY_STOP && !remotedata.external_pump) {
+Serial.println("False al chech per soglia umidita determinato da emergency_stop true");
+             client.publish("telemetry", "False al chech per soglia umidita determinato da emergency_stop true");
+} 
   if (!wateringon && sensorsdata.hum1>remotedata.humidityth && Hour==WATERING_HOUR && !EMERGENCY_STOP && sensorsdata.temp1*100<1000 && !remotedata.external_pump){
           Serial.println("Bassa umidita ma temperatura sotto soglia alla watering_hour");          //
   }
@@ -1198,9 +1212,11 @@ Serial.println(humM);
 
 if (sensorsdata.temp1>sensorsdata.temp1_max){
     sensorsdata.temp1_max=sensorsdata.temp1;
+hour_temp1_max=tm.tm_hour;
   }
    if (sensorsdata.temp1<sensorsdata.temp1_min){
     sensorsdata.temp1_min=sensorsdata.temp1;
+        hour_temp1_min=tm.tm_hour;
   }
   Serial.println("Minimo massimo umidita");
 Serial.println(humm);
@@ -1226,7 +1242,7 @@ if ((millis()-sleep_timer>=5*60*1000)&&!wateringon&&!remotedata.forcestart){
   // Remove all preferences under the opened namespace
   //preferences.clear();
  struct tm wakeTM = *localtime(&now_tt);
-char wakechar[40];
+//char wakechar[40];
 wakeTM.tm_sec += TIME_TO_SLEEP;
 //struct tm startTM;
 //    time_t start;
