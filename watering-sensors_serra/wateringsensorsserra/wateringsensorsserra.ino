@@ -180,7 +180,10 @@ struct sensorsdata_STRUCT
 {
 //sensor variables
 unsigned short hum1;  // variable to store the value read
-int temp1 = 59;  // variable to store the value read
+short temp1 = 59;  // variable to store the value read
+short temp1_min = 2000;
+short temp1_max = 500;
+
 unsigned long watertick=0;
 char lastactive[25];
 } sensorsdata;
@@ -1193,10 +1196,28 @@ Serial.println(humM);
   }
   }
 
-  if (Hour!=WATERING_HOUR&&startcounter!=0&&!remotedata.forcestart){
+if (sensorsdata.temp1>sensorsdata.temp1_max){
+    sensorsdata.temp1_max=sensorsdata.temp1;
+  }
+   if (sensorsdata.temp1<sensorsdata.temp1_min){
+    sensorsdata.temp1_min=sensorsdata.temp1;
+  }
+  Serial.println("Minimo massimo umidita");
+Serial.println(humm);
+Serial.println(humM);
+
+    if (humM-humm<200 && ((millis()-sensorsdata.watertick)>=5*60*1000) && !remotedata.forcestart){
+        EMERGENCY_STOP=true;
+  }
+  
+  if (Hour==23){
 startcounter=0;
-     client.publish("telemetry","resetting startcounter if not at startin_hour");
-      Serial.println("resetting startcounter if not at startin_hour");
+sensorsdata.temp1_min=1000;
+sensorsdata.temp1_max=1000;
+humM=1600;
+humm=3000;
+     client.publish("telemetry","resetting humm, humM, temp1_min, temp1_max, startcounter");
+      Serial.println("resetting humm, humM, temp1_min, temp1_max, startcounter");
 }
 
 if ((millis()-sleep_timer>=5*60*1000)&&!wateringon&&!remotedata.forcestart){
