@@ -3,7 +3,21 @@
 00:08:19.394 -> This chip has 2 cores
 00:08:19.394 -> Chip ID: 2292260
 */
+#include <Vector.h>
+const unsigned short hist_index_max=10;
+  typedef Vector<short> temp1hist;
+  typedef Vector<unsigned short> hum1hist;
+    typedef Vector<struct tm> timesequencehist;
 
+   short storage_array[hist_index_max];
+  temp1hist temp1_hist;
+  temp1_hist.setStorage(storage_array);
+    unsigned short storage_array[hist_index_max];
+    hum1hist hum1_hist;
+  hum1_hist.setStorage(storage_array);
+     struct tm storage_array[hist_index_max];
+      timesequencehist time_sequence_hist;
+  time_sequence_hist.setStorage(storage_array);
 #include <Preferences.h>
 Preferences preferences;
 
@@ -131,13 +145,13 @@ uint8_t prevRssi;
  time_t now_tt,epocheau_tt;
  struct tm epochstart_tm;               // this is the epoch
  struct tm tm;                              // the structure tm holds time information in a more convient way
-  struct tm timeinfo;//,tmepocheeau;
+  //struct tm timeinfo;//,tmepocheeau;
     struct tm tmepocheeau;
   unsigned long epocheau;//internal_tick;
 unsigned short WATERING_HOUR=14;
 bool EMERGENCY_STOP=false;
 bool wateringon;// = ((digitalRead(RelayWaterControl1) == LOW) || (digitalRead(RelayWaterControl1) == 0));
-unsigned short WATERING_HOUR_range=4;
+unsigned short WATERING_HOUR_range=6;
 const char* ntpServer = "europe.pool.ntp.org";
 const long  gmtOffset_sec = +3600;   //Replace with your GMT offset (seconds)
 const int   daylightOffset_sec = 0;  //Replace with your daylight offset (seconds)
@@ -185,14 +199,14 @@ unsigned short hum1;  // variable to store the value read
 short temp1 = 59;  // variable to store the value read
 short temp1_min = 2000;
 short temp1_max = 500;
-
 unsigned long watertick=0;
 char lastactive[25];
 } sensorsdata;
+
 unsigned short upper_temp1th=2500;//centigradi *100
 unsigned short lower_temp1th=1000;//centigradi *100
 unsigned short tempint = 1500;
-RTC_DATA_ATTR unsigned short startcounter=0;
+unsigned short startcounter=0;
 
 const char* topic1="forcestart";
   const char* topic2="pumptime";
@@ -201,7 +215,7 @@ const char* topic1="forcestart";
   const char* topic5="Vref18650tune";
   const char* topic6="Vrefleadtune";
 
-
+unsigned short hum1_mcount=0;
 unsigned long lastMsg = 0;
 unsigned long LastVolt=0,LastSensors=0;
 unsigned long prev_read=0;
@@ -303,7 +317,7 @@ WiFi.printDiag(Serial);
 
 void callback(char* topic,byte* payload,unsigned int length) {
               Serial.println("received mqtt payload");
-   volatile unsigned long tmp=0;
+unsigned long tmp=0;
   // volatile double intpayload=0;
     size_t sz;
    //byte * payload_str;
@@ -313,42 +327,62 @@ void callback(char* topic,byte* payload,unsigned int length) {
   Serial.print("] ");
   Serial.println("strncmp(topic, topic1, strlen(topic1))");
       int aux=(strncmp(topic, topic1, strlen(topic1))==0);
-            Serial.println("aux");
+      Serial.println("aux");
       Serial.println(aux);
- //           Serial.println("line 185");
+//           Serial.println("line 185");
 // payload_str = payload; // Make payload a string by NULL terminating it.
   //           Serial.println("line 187");
    //          Serial.print(F("payload_str"));
-
   //for (byte i = 0; i < payload.uid.size; i++) {
    // Serial.print(payload.uid.uidByte[i] < 0x10 ? " 0" : " ");
    // Serial.print(payload.uid.uidByte[i], HEX);
  // }
  //payload_str[length]='\0';
 //payload_str=(char *)payload_str;
-     // payload_str.toCharArray(payloadchar, payload_str.length()); //packaging up the data to publish to mqtt whoa...
-       //     Serial.println("line 190");
+// payload_str.toCharArray(payloadchar, payload_str.length()); //packaging up the data to publish to mqtt whoa...
+//     Serial.println("line 190");
 // if (payload_str[0]=='t'||payloadchar[0]=='f'){
-    //intpayload = atoi((char *)payload);
-        //intpayload = atof((char *)payload);
-    Serial.println("atoi((char *)payload)");
-      if (aux==1){
-      client.publish("telemetry","Arduino think Received message on topic forcestart");
-                                      client.publish("telemetry","intpayload");
-//                                      client.publish("telemetry",intpayload);
-                                      Serial.println("payload_str");
- // Serial.println((char *)payload_str);
- if ((int)payload==1){
+//intpayload = atoi((char *)payload);
+//intpayload = atof((char *)payload);
+// Serial.println("atoi((char *)payload)");
+  
+  // Allocate the correct amount of memory for the payload copy
+  byte* p = (byte*)malloc(length);
+  // Copy the payload to the new buffer
+  memcpy(p,payload,length);
+  //client.publish("outTopic", p, length);
+  // Free the memory
+  //free(p);
+  
+      if (aux==1){  
+ //     client.publish("telemetry","Arduino think Received message on topic forcestart");
+//char arr[80];
+ //strncpy(arr, (char*)p, sizeof(arr));
+  //arr[sizeof(arr)-1]=NULL;
+  //Serial.println("RAW payload");
+ //     Serial.println(arr);
+ //   Serial.println("-- RAW payload --");
+    
+ if (atoi((char*)p)==1){
    Serial.println("payload");
-  Serial.println((int)payload);
-  if (remotedata.forcestart==false){force_switchon=true;}
+  Serial.println(atoi((char*)p));
+  if (remotedata.forcestart==false){force_switchon=true; Serial.println("force_switchon=true");client.publish("telemetry","force_switchon=true");}
+  else{force_switchon=false; Serial.println("force_switchon=false");client.publish("telemetry","force_switchon=false");}
     remotedata.forcestart=true;
  }
  else{
-    if (remotedata.forcestart==true){force_switchoff=true;}
+   if (atoi((char*)p)==0){
+    if (remotedata.forcestart==true){force_switchoff=true;Serial.println("force_switchoff=true");client.publish("telemetry","force_switchoff=true");}else{force_switchoff=false;Serial.println("force_switchoff=false");client.publish("telemetry","force_switchoff=false");}
     Serial.println("payload");
-  Serial.println((int)payload);
+  Serial.println((char *)payload);
       remotedata.forcestart=false;
+   }
+   else
+   {  Serial.println("payload");
+Serial.println(atoi((char*)p));
+        Serial.println("wrong string from forcestart payload");
+      client.publish("telemetry","wrong string from forcestart payload");
+   }
  }
  }
  
@@ -358,13 +392,13 @@ aux=(strncmp(topic, topic2, strlen(topic2))==0);
       Serial.println(aux);
       if (aux==1){
       client.publish("telemetry","Arduino think Received message on topic pumptime");
-      sz = snprintf(NULL, 0, (char*)payload);
-             remotedata.pumptime=strtoul((char*)payload,NULL,sz);
+      sz = snprintf(NULL, 0, (char*)p);
+             remotedata.pumptime=strtoul((char*)p,NULL,sz);
           Serial.println("remotedata.pumptime changed to");
           Serial.println(remotedata.pumptime);
          //pumptime_str[pumptime_str.length()] = '\0'; // Make payload a string by NULL terminating it.
          //pumptime_str.toCharArray(pumptimechar, pumptime_str.length() + 1); //packaging up the data to publish to mqtt whoa...
-           stringformat="%ul";
+           stringformat="%lu";
            pumptimechar=ul2chara(stringformat,remotedata.pumptime);
                 client.publish("telemetry","Arduino think Received message on topic pumptime=");
                                 client.publish("telemetry",pumptimechar);
@@ -376,14 +410,14 @@ aux=(strncmp(topic, topic3, strlen(topic3))==0);
       Serial.println(aux);
       if (aux==1){
       client.publish("telemetry","Arduino think Received message on topic humidityth");
-sz = snprintf(NULL, 0, (char*)payload);
+sz = snprintf(NULL, 0, (char*)p);
    remotedata.humidityth=(unsigned short)strtoul((char*)payload,NULL,sz);
     Serial.println("remotedata.humidityth changed to");
     Serial.println(remotedata.humidityth);
    // humidityth_str=(String) intpayload;
    // humidityth_str[humidityth_str.length()] = '\0'; // Make payload a string by NULL terminating it.
    // humidityth_str.toCharArray(humiditythchar, humidityth_str.length() + 1); //packaging up the data to publish to mqtt whoa...
-     stringformat="%us";
+     stringformat="%hu";
      humiditythchar=us2chara(stringformat,remotedata.humidityth);        
                 client.publish("telemetry","Arduino think Received message on topic humidityth=");
                  client.publish("telemetry",humiditythchar);
@@ -404,7 +438,7 @@ aux=(strncmp(topic, topic4, strlen(topic4))==0);
  //                                     Serial.println("payload_str");
  // Serial.println((char *)payload_str);
            Serial.println("topic external pump :waiting understand payload");          //
- if ((int)payload==1){
+ if (atoi((char*)p)==1){
    //Serial.println("intpayload");
  // Serial.println(intpayload);
     remotedata.external_pump=true;
@@ -428,7 +462,7 @@ aux=(strncmp(topic, topic5, strlen(topic5))==0);
       Serial.println(aux);
       if (aux==1){
       client.publish("telemetry","Arduino think Received message on topic measured_18650");
-   remotedata.measured_18650 = strtof((char*)payload, NULL);
+   remotedata.measured_18650 = strtof((char*)p, NULL);
        Serial.println("remotedata.measured_18650");
     Serial.println(remotedata.measured_18650);
    stringformat="%.3f";
@@ -446,7 +480,7 @@ aux=(strncmp(topic, topic6, strlen(topic6))==0);
       Serial.println(aux);
       if (aux==1){
       client.publish("telemetry","Arduino think Received message on topic measured_lead");
-    remotedata.measured_lead =  strtof((char*)payload,NULL);
+    remotedata.measured_lead =  strtof((char*)p,NULL);
       Serial.println("remotedata.measured_lead");
     Serial.println(remotedata.measured_lead);
      stringformat="%.3f";
@@ -466,6 +500,7 @@ aux=(strncmp(topic, topic6, strlen(topic6))==0);
       {    
         Serial.println("topic not recognised or more than one");
       }
+      free(p);
     }
 
 /* Possible values for client.state()
@@ -777,6 +812,8 @@ if (in_voltage_18650<=2.9){
 }
 
 void sensors_reading(){
+ unsigned short hum1_measures=5;
+  hum1_mcount+=1;
   LastSensors=millis();
   Serial.print(" Requesting temperatures...");
 /*
@@ -805,8 +842,14 @@ char* tempint_str =(char*) malloc( length + 1 );
 snprintf( tempint_str, length + 1, "%d", tempint );
     client.publish("telemetry","temperatura interna");
         client.publish("telemetry",tempint_str);
-
-  sensorsdata.hum1 = analogRead(humpin);  // read the input pin
+while (analogRead(humpin)==0){
+  Serial.println("waiting hum1 different from 0");          // debug value
+        client.publish("telemetry","waiting hum1 different from 0");
+        } 
+        for (unsigned short hum1_mcount=0;hum1_mcount<=hum1_measures;hum1_mcount++){ 
+  sensorsdata.hum1 += analogRead(humpin);  // read the input pin
+        }
+        sensorsdata.hum1=sensorsdata.hum1/hum1_measures;
    // temp1 = analogRead(temppin);  // read the input pin
       Serial.println("humidity");          // debug value
   Serial.println(sensorsdata.hum1);          // debug value
@@ -948,7 +991,7 @@ if (millis()-LastVolt>2*60*1000){
   measure_voltages();
 }
 
-  if (startcounter>=2&&!remotedata.forcestart){
+  if (startcounter>=5&&!remotedata.forcestart){
     EMERGENCY_STOP=true;
   }
       
@@ -984,10 +1027,18 @@ Serial.println("Avvio innaffiatura per comando da remoto");
 client.publish("telemetry", "Avvio innaffiatura per forcestart=true");
 }
         else{
-      if (wateringon&&remotedata.forcestart&&(millis()-sensorsdata.watertick)>=MAX_PUMP_TIME){
+if (remotedata.forcestart){
+  //  printLocalTime();
+ //sensorsdata.lastactive=*asctime(&tm);
+        EMERGENCY_STOP=false;
+Serial.println("Mi assicuro di mettere emergency_stop a false se remotedata.forcestart is true");
+client.publish("telemetry", "Mi assicuro di mettere emergency_stop a false se remotedata.forcestart is true");
+}
+      if (wateringon&&(millis()-sensorsdata.watertick)>=MAX_PUMP_TIME){
   water_off();
-        EMERGENCY_STOP=true;
+  if (remotedata.forcestart==1&&!EMERGENCY_STOP){
         remotedata.forcestart=0;
+  }
 Serial.println("Fermo pompa per troppo tempo acceso");
    client.publish("telemetry", "Interompo innaffiatura per pompa accesa troppo tempo");
 }else{
@@ -1024,7 +1075,8 @@ Serial.println("False al chech per soglia umidita determinato da emergency_stop 
 }
   }
                     else{
-  if (sensorsdata.hum1>remotedata.humidityth && !wateringon && !EMERGENCY_STOP && (sensorsdata.temp1*100>lower_temp1th && sensorsdata.temp1*100<upper_temp1th) && !remotedata.external_pump && !(Hour<=WATERING_HOUR+WATERING_HOUR_range&&Hour>=WATERING_HOUR-WATERING_HOUR_range)){
+                      //&& (sensorsdata.temp1*100>lower_temp1th && sensorsdata.temp1*100<upper_temp1th)
+  if (sensorsdata.hum1>remotedata.humidityth && !wateringon && !EMERGENCY_STOP && !remotedata.external_pump && !(Hour<=WATERING_HOUR+WATERING_HOUR_range&&Hour>=WATERING_HOUR-WATERING_HOUR_range)){
           Serial.println("Bassa umidita ma non e' l'ora di innaffiare");          //
           client.publish("telemetry","Bassa umidita ma non e' l'ora di innaffiare");
 
@@ -1044,11 +1096,17 @@ water_off();
   for (unsigned long tmp=millis();millis()-tmp<=15*1000;){}
       }
                                       else{
-        if (!remotedata.forcestart && wateringon && force_switchoff){
+        if (wateringon && force_switchoff){
           Serial.println("turning off from forcestart");          //
         client.publish("telemetry","turning off from forcestart");
+        water_off();
         }
                                               else{
+         if (wateringon && remotedata.forcestart){
+          Serial.println("Should I switch off even if force_switch_off not triggered");          //
+        client.publish("telemetry","Should I switch off even if force_switch_off not triggered");
+        water_off();
+        }
           if (sensorsdata.hum1<=0 && sensorsdata.temp1<=0){
                     Serial.println("still no sensors reading");          //
         client.publish("telemetry","still no sensors reading");
@@ -1087,8 +1145,31 @@ water_off();
               client.publish("telemetry","Humidity below threshold e tutto va bene");
                       }
                       else{
+                        if (!remotedata.forcestart && sensorsdata.hum1 <= remotedata.humidityth && !wateringon && EMERGENCY_STOP && !remotedata.external_pump){
+                          Serial.println("Humidity below threshold e EMERGENCY_STOP true");          //
+              client.publish("telemetry","Humidity below threshold e EMERGENCY_STOP true");
+                        }
                    Serial.println("unknow state??");          //
                    client.publish("telemetry","unknow state??");
+                   Serial.println("remotedata.forcestart");          //
+                   Serial.println(remotedata.forcestart);          //
+                   if (remotedata.forcestart){client.publish("telemetry","remotedata.forcestart true");}else{client.publish("telemetry","remotedata.forcestart false");}
+                   Serial.println("sensorsdata.hum1 <= remotedata.humidityth");          //
+                   Serial.println(sensorsdata.hum1 <= remotedata.humidityth);          //
+                   if (sensorsdata.hum1 <= remotedata.humidityth){client.publish("telemetry","sensorsdata.hum1 <= remotedata.humidityth true");}else{client.publish("telemetry","sensorsdata.hum1 <= remotedata.humidityth false");}
+                   Serial.println("!wateringon");          //
+                   Serial.println(!wateringon);          //
+                   if (!wateringon){client.publish("telemetry","!wateringon true");}else{client.publish("telemetry","!wateringon false");}
+                   Serial.println("EMERGENCY_STOP");          //
+                   Serial.println(EMERGENCY_STOP);          //
+                   if (EMERGENCY_STOP){client.publish("telemetry","EMERGENCY_STOP true");}else{client.publish("telemetry","EMERGENCY_STOP false");}
+                   Serial.println("remotedata.external_pump");          //
+                   Serial.println(remotedata.external_pump);          //
+                   if (remotedata.external_pump){client.publish("telemetry","remotedata.external_pump true");}else{client.publish("telemetry","remotedata.external_pump false");}
+                                      Serial.println("!(Hour<=WATERING_HOUR+WATERING_HOUR_range&&Hour>=WATERING_HOUR-WATERING_HOUR_range)");          //
+                   Serial.println(!(Hour<=WATERING_HOUR+WATERING_HOUR_range&&Hour>=WATERING_HOUR-WATERING_HOUR_range));          //
+                   if (!(Hour<=WATERING_HOUR+WATERING_HOUR_range&&Hour>=WATERING_HOUR-WATERING_HOUR_range)){client.publish("telemetry","!(Hour<=WATERING_HOUR+WATERING_HOUR_range&&Hour>=WATERING_HOUR-WATERING_HOUR_range) true");}else{client.publish("telemetry","!(Hour<=WATERING_HOUR+WATERING_HOUR_range&&Hour>=WATERING_HOUR-WATERING_HOUR_range) false");}
+
                     }
                    }
                   }
@@ -1140,11 +1221,11 @@ Serial.println(millis()-sensorsdata.watertick);
     //snprintf(msg, MSG_BUFFER_SIZE, "hello world #%ld", String.toCharArray(asctime(timeinfo)));
   //asctime(timeinfo).toCharArray(msg, 24);
        // Serial.print(aux);
-       temp1char=f2chara("%f.3",sensorsdata.temp1/(float)100);
+       temp1char=f2chara("%f5.3",sensorsdata.temp1/(float)100);
     // temp_str = (String) (sensorsdata.temp1/100); //converting ftemp (the float variable above) to a string
    //  temp_str[temp_str.length()] = '\0';
    // temp_str.toCharArray(temp1char, temp_str.length()+1); //packaging up the data to publish to mqtt whoa...
-hum1char=us2chara("%us",sensorsdata.hum1);
+hum1char=us2chara("%hu",sensorsdata.hum1);
 // hum_str = (String) sensorsdata.hum1; //converting ftemp (the float variable above) to a string
 //    hum_str[hum_str.length()] = '\0';
 //   hum_str.toCharArray(hum1char, hum_str.length()+1); //packaging up the data to publish to mqtt whoa...
@@ -1225,7 +1306,23 @@ Serial.println(humM);
         EMERGENCY_STOP=true;
   }
   }
+  else//what I need to reset if !wateringon:humm, humM
+  {
+humm=4000;
+humM=300;
 
+   }
+    }
+
+     if (difftime(tm, time_sequence_hist[0])>20*60){
+       for (int i=0;i<hist_index_max){
+       temp1_hist.push_back(hist_index_max-i-1);
+              time_sequence_hist.push_back(hist_index_max-i-1);
+              temp1_hist[0]=sensorsdata.temp1;
+              time_sequence_hist[0]=tm;
+            hum1_hist[0]=sensorsdata.hum1;
+      }
+      
 if (sensorsdata.temp1>sensorsdata.temp1_max){
     sensorsdata.temp1_max=sensorsdata.temp1;
 hour_temp1_max=tm.tm_hour;
@@ -1238,17 +1335,21 @@ hour_temp1_max=tm.tm_hour;
 Serial.println(humm);
 Serial.println(humM);
 
-    if (humM-humm<200 && ((millis()-sensorsdata.watertick)>=5*60*1000) && !remotedata.forcestart){
+    if (humm!=0&&humM-humm<200 && ((millis()-sensorsdata.watertick)>=5*60*1000)){
+           client.publish("telemetry","hum1 not decreasing enough: emergency_stop=true");
+      Serial.println("hum1 not decreasing enough: emergency_stop=true");
         EMERGENCY_STOP=true;
   }
-  
+
+// if (difftime(tm, time_sequence_hist[0])>20*60){
+//   }
   if (Hour==23){
 startcounter=0;
 sensorsdata.temp1_min=1000;
 sensorsdata.temp1_max=1000;
-humM=1600;
-humm=3000;
-     client.publish("telemetry","resetting humm, humM, temp1_min, temp1_max, startcounter");
+//humM=1600;
+//humm=3000;
+     client.publish("telemetry","resetting temp1_min, temp1_max, startcounter");
       Serial.println("resetting humm, humM, temp1_min, temp1_max, startcounter");
 }
 
