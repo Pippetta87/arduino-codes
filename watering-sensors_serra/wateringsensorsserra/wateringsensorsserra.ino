@@ -363,10 +363,10 @@ void callback(char* topic,byte* payload,unsigned int length) {
   memcpy(p,payload,length);
   //client.publish("outTopic", p, length);
   // Free the memory
-  //free(p);
   char pchar[20];
   //array_to_string(p,length,pchar);
-    strcpy(pchar,(char*)p); //init byte array, index 5 = \0
+    strcpy(pchar,(char*)p);
+      free(p);
   //String myString = String((char *)byteArray);
   if (aux==1){  
   //     client.publish("telemetry","Arduino think Received message on topic forcestart");
@@ -524,7 +524,7 @@ void callback(char* topic,byte* payload,unsigned int length) {
   {    
   Serial.println(F("topic not recognised or more than one"));
   }
-  free(p);
+  //free(p);
 }
 
 /* Possible values for client.state()
