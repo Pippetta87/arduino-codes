@@ -360,13 +360,21 @@ void callback(char* topic,byte* payload,unsigned int length) {
   // Allocate the correct amount of memory for the payload copy
   byte* p = (byte*)malloc(length);
   // Copy the payload to the new buffer
-  memcpy(p,payload,length);
+//  memcpy(p,payload,length);
   //client.publish("outTopic", p, length);
   // Free the memory
-  char pchar[20];
+  // char pchar[20];
   //array_to_string(p,length,pchar);
-    strcpy(pchar,(char*)p);
-      free(p);
+  //  strcpy(pchar,(char*)p);
+  char pchar[length + 1];
+  // copy contents of payload to message
+  memcpy(pchar, payload, length);
+  // add NULL terminator to message, making it a correct c string
+  pchar[length + 1] = '\0';
+  // use string functions with message
+  // e.g
+  int messageLength = strlen(pchar);
+        free(payload);
   //String myString = String((char *)byteArray);
   if (aux==1){  
   //     client.publish("telemetry","Arduino think Received message on topic forcestart");
