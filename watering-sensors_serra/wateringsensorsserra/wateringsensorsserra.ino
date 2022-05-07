@@ -3,6 +3,9 @@
 00:08:19.394 -> This chip has 2 cores
 00:08:19.394 -> Chip ID: 2292260
 */
+#include <stdio.h>
+//#define getName(var)  #var
+# define getName(var, str)  sprintf(str, "%s", #var)
 
 #include <Preferences.h>
 Preferences preferences;
@@ -219,7 +222,7 @@ template <typename T> void load_head(T *arr,T val){
   arr[0]=val;
 }
 const unsigned short hist_index_max=10;
-void hist_var(time_t arr_time[],time_t val_t,unsigned short arr_hum1[],unsigned short val_hum1,short arr_temp1[],short val_temp1){
+void hist_var(time_t *arr_time,time_t val_t,unsigned short *arr_hum1,unsigned short val_hum1,short *arr_temp1,short val_temp1){
   size_t size = sizeof(arr_time)/sizeof(arr_time[0]);
   if(size<hist_index_max){
   byte *p =(byte*) malloc(sizeof(time_t)*hist_index_max);
@@ -327,6 +330,84 @@ void array_to_string(byte array[], unsigned int len, char buffer[]){
     buffer[len*2] = '\0';
 }
 
+void debugging(char *what){
+ char str[20];
+   getName(*what, str);
+            Serial.println(F(str));
+    Serial.println(what);
+      client.publish("telemetry",str);
+      client.publish("telemetry",what);
+}
+void debugging(int what){
+ char str[20];
+const char *format="%d";
+ char *mychar;
+ mychar=i2chara(format,what);
+   getName(what,str);
+            Serial.println(F(str));
+    Serial.println(what);
+      client.publish("telemetry",str);
+      client.publish("telemetry",mychar);
+}
+void debugging(unsigned short what){
+ char str[20];
+const char *format="%hu";
+ char *mychar;
+ mychar=us2chara(format,what);
+   getName(what,str);
+            Serial.println(F(str));
+    Serial.println(what);
+      client.publish("telemetry",str);
+      client.publish("telemetry",mychar);
+}
+void debugging(float what){
+ char str[20];
+const char *format="%6.3f";
+ char *mychar;
+ mychar=f2chara(format,what);
+   getName(what,str);
+            Serial.println(F(str));
+    Serial.println(what);
+      client.publish("telemetry",str);
+      client.publish("telemetry",mychar);
+}
+void debugging(unsigned long what){
+ char str[20];
+const char *format="%lu";
+ char *mychar;
+ mychar=us2chara(format,what);
+   getName(what,str);
+            Serial.println(F(str));
+    Serial.println(what);
+      client.publish("telemetry",str);
+      client.publish("telemetry",mychar);
+}
+void debugging(short what){
+ char str[20];
+const char *format="%hi";
+ char *mychar;
+ mychar=s2chara(format,what);
+   getName(what,str);
+            Serial.println(F(str));
+    Serial.println(what);
+      client.publish("telemetry",str);
+      client.publish("telemetry",mychar);
+}
+void debugging(size_t what){
+const char *format="%hu";
+char str[20];
+ char *mychar;
+ mychar=ul2chara(format,(unsigned long)what);
+   getName(what,str);
+    Serial.println(str);
+        Serial.println(what);
+      client.publish("telemetry",str);
+      client.publish("telemetry",mychar);
+}
+void debugging(const char dbgmsg[50]){
+            Serial.println(F(dbgmsg));
+      client.publish("telemetry",dbgmsg);
+}
 void callback(char* topic,byte* payload,unsigned int length) {
   Serial.println(F("received mqtt payload"));
   unsigned long tmp=0;
@@ -339,8 +420,7 @@ void callback(char* topic,byte* payload,unsigned int length) {
   Serial.print(F("] "));
   Serial.println(F("strncmp(topic, topic1, strlen(topic1))"));
   int aux=(strncmp(topic, topic1, strlen(topic1))==0);
-  Serial.println(F("aux"));
-  Serial.println(aux);
+ //debugging(aux);
   //Serial.println("line 185");
   // payload_str = payload; // Make payload a string by NULL terminating it.
   //           Serial.println("line 187");
@@ -358,7 +438,7 @@ void callback(char* topic,byte* payload,unsigned int length) {
   //intpayload = atof((char *)payload);
   // Serial.println("atoi((char *)payload)"); 
   // Allocate the correct amount of memory for the payload copy
-  byte* p = (byte*)malloc(length);
+  //byte* p = (byte*)malloc(length);
   // Copy the payload to the new buffer
 //  memcpy(p,payload,length);
   //client.publish("outTopic", p, length);
@@ -375,144 +455,150 @@ void callback(char* topic,byte* payload,unsigned int length) {
   // e.g
   int messageLength = strlen(pchar);
         free(payload);
+debugging(pchar);
   //String myString = String((char *)byteArray);
-  if (aux==1){  
+  if (aux==1){
+  debugging("Arduino think Received message on topic forcestart");
   //     client.publish("telemetry","Arduino think Received message on topic forcestart");
   //strncpy(arr, (char*)p, sizeof(arr));
   //arr[sizeof(arr)-1]=NULL;
   //Serial.println("RAW payload");
   //     Serial.println(arr);
   //   Serial.println("-- RAW payload --");
-    Serial.println("pchar");
-    Serial.println(pchar);
     //strncpy(pchar, char(*p), sizeof(pchar));
   //pchar[sizeof(pchar)-1]=NULL;
   if (atoi(pchar)==1){
   Serial.println(F("payload"));
   Serial.println(atoi(pchar));
+  debugging(atoi(pchar));
   if (remotedata.forcestart==false){
-    force_switchon=true; Serial.println(F("force_switchon=true"));client.publish("telemetry","force_switchon=true");
+    force_switchon=true; debugging("force_switchon=true");//Serial.println(F("force_switchon=true"));client.publish("telemetry","force_switchon=true");
     }
   else{
-    force_switchon=false; Serial.println(F("force_switchon=false"));client.publish("telemetry","force_switchon=false");
+    force_switchon=false; debugging("force_switchon=false");//Serial.println(F("force_switchon=false"));client.publish("telemetry","force_switchon=false");
     }
     remotedata.forcestart=true;
   }
  else{
-    Serial.println("pchar");
-    Serial.println(pchar);
-  /*  if (atoi(pchar)==0){
-      if (remotedata.forcestart==true){force_switchoff=true;Serial.println(F("force_switchoff=true"));client.publish("telemetry","force_switchoff=true");}
+  if (atoi(pchar)==0){
+      if (remotedata.forcestart==true){force_switchoff=true;debugging("force_switchoff=true");//Serial.println(F("force_switchoff=true"));client.publish("telemetry","force_switchoff=true");
+      }
       else{
-  force_switchoff=false;Serial.println(F("force_switchoff=false"));client.publish("telemetry","force_switchoff=false");}
-  Serial.println(F("payload"));
-  Serial.println(pchar);
-  remotedata.forcestart=false;
+  force_switchoff=false;debugging("force_switchoff=false");//Serial.println(F("force_switchoff=false"));client.publish("telemetry","force_switchoff=false");
   }
-  
+  remotedata.forcestart=false;
+  debugging("setting remotedata.forcestart=false");
+  }
   else{
-  Serial.println(F("pchar"));
-  Serial.println(atoi(pchar));
-  Serial.println(F("wrong string from forcestart payload"));
-  client.publish("telemetry","wrong string from forcestart payload");
-  }*/
+debugging("wrong string from forcestart payload");
+  }
   }
   }
   Serial.println(F("strncmp(topic, topic2, strlen(topic2))"));
   aux=(strncmp(topic, topic2, strlen(topic2))==0);
   tmp=tmp+aux;
-  Serial.println(aux);
+  //Serial.println(aux);
   if (aux==1){
-  client.publish("telemetry","Arduino think Received message on topic pumptime");
+    debugging("Arduino think Received message on topic pumptime");
   sz = snprintf(NULL, 0, pchar);
-    Serial.println(F("sz = snprintf(NULL, 0, (char*)p)"));
-  Serial.println(sz);
+  debugging(sz);
   remotedata.pumptime=strtoul(pchar,NULL,10);
-  Serial.println(F("remotedata.pumptime changed to"));
-  Serial.println(remotedata.pumptime);
+  debugging(remotedata.pumptime);
   //pumptime_str[pumptime_str.length()] = '\0'; // Make payload a string by NULL terminating it.
   //pumptime_str.toCharArray(pumptimechar, pumptime_str.length() + 1); //packaging up the data to publish to mqtt whoa...
   stringformat="%lu";
   pumptimechar=ul2chara(stringformat,remotedata.pumptime);
-  client.publish("telemetry","message on topic pumptime=");
-  client.publish("telemetry",pumptimechar);
+  //client.publish("telemetry","message on topic pumptime=");
+  //client.publish("telemetry",pumptimechar);
+  debugging(pumptimechar);
   }
   Serial.println(F("strncmp(topic, topic3, strlen(topic3))"));
   aux=(strncmp(topic, topic3, strlen(topic3))==0);
   tmp=tmp+aux;
-  Serial.println(aux);
+  //Serial.println(aux);
   if (aux==1){
-  client.publish("telemetry","Arduino think Received message on topic humidityth");
+    debugging("Arduino think Received message on topic humidityth");
+  //client.publish("telemetry","Arduino think Received message on topic humidityth");
   sz = snprintf(NULL, 0, pchar);
-  Serial.println(F("sz = snprintf(NULL, 0, (char*)p)"));
-  Serial.println(sz);
+  debugging(sz);
+  //Serial.println(F("sz = snprintf(NULL, 0, (char*)p)"));
+  //Serial.println(sz);
   remotedata.humidityth=(unsigned short)strtoul(pchar,NULL,10);
-  Serial.println(F("remotedata.humidityth changed to"));
-  Serial.println(remotedata.humidityth);
+  //debugging(remotedata.humidityth);
+  //Serial.println(F("remotedata.humidityth changed to"));
+  //Serial.println(remotedata.humidityth);
   // humidityth_str=(String) intpayload;
   // humidityth_str[humidityth_str.length()] = '\0'; // Make payload a string by NULL terminating it.
   // humidityth_str.toCharArray(humiditythchar, humidityth_str.length() + 1); //packaging up the data to publish to mqtt whoa...
   stringformat="%hu";
-  humiditythchar=us2chara(stringformat,remotedata.humidityth);        
-  client.publish("telemetry","Message on topic humidityth=");
+  humiditythchar=us2chara(stringformat,remotedata.humidityth);
+  debugging(humiditythchar);
+  /*client.publish("telemetry","Message on topic humidityth=");
   client.publish("telemetry",humiditythchar);
   Serial.println("humiditythchar");
-  Serial.println(humiditythchar);
+  Serial.println(humiditythchar);*/
   }
   //}
   Serial.println(F("strncmp(topic, topic4, strlen(topic4))"));
   aux=(strncmp(topic, topic4, strlen(topic4))==0);
   tmp=tmp+aux;
-  Serial.println(F("aux4"));
-  Serial.println(aux);
+  //Serial.println(F("aux4"));
+  //Serial.println(aux);
   if (aux==1){
-  client.publish("telemetry","Arduino think Received message on topic external_pump");
+    debugging("Arduino think Received message on topic external_pump");
+ // client.publish("telemetry","Arduino think Received message on topic external_pump");
   //                                 client.publish("telemetry","intpayload");
   //                                      client.publish("telemetry",intpayload);
   //                                     Serial.println("payload_str");
   // Serial.println((char *)payload_str);
-  Serial.println(F("topic external pump :waiting understand payload"));         //
+  Serial.println(F("topic external pump :waiting understand payload"));//
+  debugging("topic external pump :waiting understand payload");
   if (atoi(pchar)==1){
   //Serial.println("intpayload");
   // Serial.println(intpayload);
   remotedata.external_pump=true;
-  Serial.println(F("external_pump set"));          //
-  client.publish("telemetry","external_pump set");
+  //Serial.println(F("external_pump set"));          //
+  //client.publish("telemetry","external_pump set");
+  debugging("external_pump set");
   digitalWrite(RelayValveControll, LOW);
   }
   else{
   // Serial.println("intpayload");
   //Serial.println(intpayload);
   remotedata.external_pump=false;
-  Serial.println(F("external_pump unset"));          //
-  client.publish("telemetry","external_pump unset");
+  debugging("external_pump unset");
+  //Serial.println(F("external_pump unset"));          //
+  //client.publish("telemetry","external_pump unset");
   digitalWrite(RelayValveControll, HIGH);
   }
   }  
   Serial.println(F("strncmp(topic, topic5, strlen(topic5))"));
   aux=(strncmp(topic, topic5, strlen(topic5))==0);
   tmp=tmp+aux;
-  Serial.println(aux);
+  //Serial.println(aux);
   if (aux==1){
-  client.publish("telemetry","Arduino think Received message on topic measured_18650");
-  remotedata.measured_18650 = strtof((char*)p, NULL);
+  //client.publish("telemetry","Arduino think Received message on topic measured_18650");
+  debugging("Arduino think Received message on topic measured_18650");
+  remotedata.measured_18650 = strtof(pchar, NULL);
   Serial.println(F("remotedata.measured_18650"));
   Serial.println(remotedata.measured_18650);
   stringformat="%.3f";
   measured_18650char=f2chara("%.3f",remotedata.measured_18650);
+  debugging(measured_18650char);
   //measured_18650_str=(String) intpayload;
   //measured_18650_str[measured_18650_str.length()] = '\0'; // Make payload a string by NULL terminating it.
   //measured_18650_str.toCharArray(measured_18650char, measured_18650_str.length() + 1); //packaging up the data to publish to mqtt whoa... 
-  client.publish("telemetry","Arduino think Received message on topic measured_18650=");
-  client.publish("telemetry",measured_18650char);
+  //client.publish("telemetry","Arduino think Received message on topic measured_18650=");
+  //client.publish("telemetry",measured_18650char);
   }  
   Serial.println(F("strncmp(topic, topic6, strlen(topic6))"));
   aux=(strncmp(topic, topic6, strlen(topic6))==0);
   tmp=tmp+aux;
-  Serial.println(aux);
+  //Serial.println(aux);
   if (aux==1){
-  client.publish("telemetry","Arduino think Received message on topic measured_lead");
-  remotedata.measured_lead =  strtof((char*)p,NULL);
+  //client.publish("telemetry","Arduino think Received message on topic measured_lead");
+  debugging("Arduino think Received message on topic measured_lead");
+  remotedata.measured_lead =  strtof(pchar,NULL);
   Serial.println(F("remotedata.measured_lead"));
   Serial.println(remotedata.measured_lead);
   stringformat="%.3f";
@@ -520,17 +606,20 @@ void callback(char* topic,byte* payload,unsigned int length) {
   //measured_lead_str=(String) intpayload;
   //measured_lead_str[measured_18650_str.length()] = '\0'; // Make payload a string by NULL terminating it.
   //measured_lead_str.toCharArray(measured_leadchar, measured_lead_str.length() + 1); //packaging up the data to publish to mqtt whoa...
-  client.publish("telemetry","Arduino think Received message on topic measured_leadchar=");
-  client.publish("telemetry",measured_leadchar);
+  //client.publish("telemetry","Arduino think Received message on topic measured_leadchar=");
+  //client.publish("telemetry",measured_leadchar);
+  debugging(measured_leadchar);
   } 
   //char *topiclist = { "forcestart", "pumptime", "humidityth"};
   if (tmp==1)
   {
-  Serial.println(F("topic recognised"));
+    debugging("topic recognised");
+  //Serial.println(F("topic recognised"));
   }
   else
   {    
-  Serial.println(F("topic not recognised or more than one"));
+    debugging("topic not recognised or more than one");
+    //Serial.println(F("topic not recognised or more than one"));
   }
   //free(p);
 }
@@ -551,8 +640,8 @@ void callback(char* topic,byte* payload,unsigned int length) {
 void reconnect() {
   // Loop until we're reconnected
   short mqtt_rc=0;
-  String mqtt_rcstr;
-  char mqtt_rcchr[5];
+ // String mqtt_rcstr;
+  char *mqtt_rcchr;
   while (!client.connected()) {
   mqtt_rc=client.state();
   Serial.println(client.state());
@@ -572,11 +661,14 @@ void reconnect() {
   client.subscribe("Vrefleadtune");
   }
   }
-  mqtt_rcstr=(String) mqtt_rc;
-  mqtt_rcstr[mqtt_rcstr.length()] = '\0';// Make payload a string by NULL terminating it.
-  mqtt_rcstr.toCharArray(mqtt_rcchr, mqtt_rcstr.length() + 1);//packaging up
-  client.publish("telemetry", "mqtt disconnected due to rc=");
-  client.publish("telemetry", mqtt_rcchr);
+  //mqtt_rcstr=(String) mqtt_rc;
+  //mqtt_rcstr[mqtt_rcstr.length()] = '\0';// Make payload a string by NULL terminating it.
+  //mqtt_rcstr.toCharArray(mqtt_rcchr, mqtt_rcstr.length() + 1);//packaging up
+  stringformat="%hi";
+  mqtt_rcchr=s2chara(stringformat,mqtt_rc);
+  //client.publish("telemetry", "mqtt disconnected due to rc=");
+  //client.publish("telemetry", mqtt_rcchr);
+debugging(mqtt_rcchr);
 }
 
 void setup_time () {
@@ -596,9 +688,14 @@ void setup_time () {
 }
 
 void printLocalTime(){
+  char *time_chr;
   time(&now_tt);
   localtime_r(&now_tt,&tm);
   Serial.printf("The current date/time is: %s", asctime(&tm));
+  debugging("The current date/time is:");
+  stringformat="%s";
+  time_chr=str2chara(stringformat,asctime(&tm));
+  debugging(time_chr);
   Hour=tm.tm_hour;
   //  Serial.println(tm.tm_min);
   }
@@ -611,35 +708,7 @@ void setup() {
   // has to use a namespace name to prevent key name collisions. We will open storage in
   // RW-mode (second parameter has to be false).
   // Note: Namespace name is limited to 15 chars.
-  preferences.begin("remotedata", false);
-  // Remove all preferences under the opened namespace
-  //preferences.clear();
-  // Or remove the counter key only
-  //preferences.remove("counter");
-  //testing valve connection
-  // Note: Key name is limited to 15 chars.
-  /*
-  typedef struct {
-  time_t time_hist_disk;
-  unsigned short hum1_hist_disk;
-  short temp1_hist_disk;
-  } hist_var_my;
-  */
-  remotedata.forcestart = preferences.getBool("forcestart", false);
-  EMERGENCY_STOP = preferences.getBool("EMERGENCY_STOP", false);
-  ref_voltage_18650 =preferences.getFloat("ref_voltage_18650", 1.042);
-  ref_voltage_lead =preferences.getFloat("ref_voltage_lead", 3.388);
-  remotedata.external_pump=preferences.getBool("external_pump", false);
-  remotedata.pumptime = preferences.getULong("pumptime", 270000);
-  remotedata.humidityth = preferences.getUShort("humidityth", 1600);
-  //sensorsdata.watertick = preferences.getULong("watertick", 0);
-  String tmp=preferences.getString("lastactive", "never");
-  //int tmp_l = tmp.length();
-  strcpy(sensorsdata.lastactive, tmp.c_str());
-  preferences.getBytes("time_hist", &time_hist, sizeof(time_hist));
-  preferences.getBytes("hum1_hist", &hum1_hist, sizeof(hum1_hist));
-  preferences.getBytes("temp1_hist", &temp1_hist, sizeof(temp1_hist));
-  preferences.end();
+  
   bootCount++;
   Serial.println("Boot number: " + String(bootCount));
   //Print the wakeup reason for ESP32
@@ -674,8 +743,10 @@ void setup() {
   //epochstart_str[epochstart_str.length()] = '\0';
   //epochstart_str.toCharArray(epochstartchar, epochstart_str.length()); //packaging up the data to publish to mqtt whoa...
   //    char* aux=asctime(epochstart_tm);
-  client.publish("telemetry", epochstartchar);
-  Serial.println(F("Dallas Temperature IC Control Library Demo"));
+  debugging(epochstartchar);
+  //client.publish("telemetry", epochstartchar);
+  //Serial.println(F("Dallas Temperature IC Control Library Demo"));
+  debugging("Dallas Temperature IC Control Library Demo");
   // Start up the library
   sensors.begin();
   Serial.println(F("Settin RelayWaterControl1 to output"));
@@ -685,14 +756,50 @@ void setup() {
   pinMode(RelayValveControll, OUTPUT);
   digitalWrite(RelayValveControll, HIGH);
   //           digitalWrite(RelayValveControll, LOW);
-  adcAttachPin(humpin);
+  preferences.begin("remotedata", false);
+  // Remove all preferences under the opened namespace
+  //preferences.clear();
+  // Or remove the counter key only
+  //preferences.remove("counter");
+  //testing valve connection
+  // Note: Key name is limited to 15 chars.
+  /*
+  typedef struct {
+  time_t time_hist_disk;
+  unsigned short hum1_hist_disk;
+  short temp1_hist_disk;
+  } hist_var_my;
+  */
+  remotedata.forcestart = preferences.getBool("forcestart", false);
+  EMERGENCY_STOP = preferences.getBool("EMERGENCY_STOP", false);
+  ref_voltage_18650 =preferences.getFloat("ref_voltage_18650", 1.042);
+  ref_voltage_lead =preferences.getFloat("ref_voltage_lead", 3.388);
+  remotedata.external_pump=preferences.getBool("external_pump", false);
+  remotedata.pumptime = preferences.getULong("pumptime", 270000);
+  remotedata.humidityth = preferences.getUShort("humidityth", 1600);
+  //sensorsdata.watertick = preferences.getULong("watertick", 0);
+  String tmp=preferences.getString("lastactive", "never");
+  //int tmp_l = tmp.length();
+  strcpy(sensorsdata.lastactive, tmp.c_str());
+  preferences.getBytes("time_hist", &time_hist, sizeof(time_hist));
+  preferences.getBytes("hum1_hist", &hum1_hist, sizeof(hum1_hist));
+  preferences.getBytes("temp1_hist", &temp1_hist, sizeof(temp1_hist));
+  preferences.end();
+  size_t sizeof_time_hist=sizeof(time_hist);
+  debugging(sizeof_time_hist);
+    size_t sizeof_hum1_hist=sizeof(hum1_hist);
+  debugging(sizeof_hum1_hist);
+      size_t sizeof_temp1_hist=sizeof(temp1_hist);
+  debugging(sizeof_temp1_hist);
+  adcAttachPin(humpin);//Attach a pin to ADC (also clears any other analog mode that could be on). Returns TRUE or FALSE result.
   sensors_reading();
 }
 
 void water_on(){
   strncpy(sensorsdata.lastactive, asctime(&tm), 25);
-  Serial.println(F("sensorsdata.lastactive"));
-  Serial.println(sensorsdata.lastactive);
+  //Serial.println(F("sensorsdata.lastactive"));
+  //Serial.println(sensorsdata.lastactive);
+  debugging(sensorsdata.lastactive);
   sensorsdata.lastactive[sizeof(sensorsdata.lastactive) - 1] = 0;
   digitalWrite(RelayValveControll, LOW);
   //delay(15*1000);
@@ -709,8 +816,9 @@ void water_off(){
   for (unsigned long tmp=millis();millis()-tmp<=5*1000;){}
   //  delay(5*1000);
   digitalWrite(RelayValveControll, HIGH);
-  client.publish("telemetry", "watering off");
-  Serial.println(F("watering off!!!"));
+  //client.publish("telemetry", "watering off");
+  //Serial.println(F("watering off!!!"));
+  debugging("watering off");
 }
 
 void tune_Vref_18650(){
@@ -718,7 +826,8 @@ void tune_Vref_18650(){
   unsigned long somma=0;
   float val;
   adc1_config_channel_atten(ADC1_CHANNEL_6,ADC_ATTEN_DB_0);
-  Serial.println(F("reading 100 samples from adc_6"));
+  //Serial.println(F("reading 100 samples from adc_6"));
+  debugging("reading 100 samples from adc_6");
   for (int i=0;i<100;i++){
   //Serial.println(" adc1_get_raw(ADC1_CHANNEL_6");
   //Serial.println(adc1_get_raw(ADC1_CHANNEL_6));
@@ -733,7 +842,8 @@ void tune_Vref_18650(){
   val=somma/(float)100;
   Vref_18650_tune=remotedata.measured_18650/val*4096*(R2_18650/(R1_18650+R2_18650));
   ref_voltage_18650=(float)Vref_18650_tune;
-  client.publish("telemetry","Setting Ref Voltage 18650");
+  //client.publish("telemetry","Setting Ref Voltage 18650");
+  debugging("Setting Ref Voltage 18650");
 }
 
 void tune_Vref_lead(){
@@ -756,18 +866,21 @@ void tune_Vref_lead(){
   val=somma/(float)100;
   Vref_lead_tune=remotedata.measured_lead/val*4096*(R2_lead/(R1_lead+R2_lead));
   ref_voltage_lead=(float)Vref_lead_tune;
-  client.publish("telemetry","setting Ref Voltage Lead");
+ // client.publish("telemetry","setting Ref Voltage Lead");
+  debugging("setting Ref Voltage Lead");
 }
 
 void measure_voltages(){
-  Serial.println(F("Measuring Voltage"));
-  client.publish("telemetry","Measure Voltage");
+  //Serial.println(F("Measuring Voltage"));
+ // client.publish("telemetry","Measure Voltage");
+ debugging("Measure Voltage");
   LastVolt=millis();
   adc1_config_width(ADC_WIDTH_BIT_12);
   unsigned long somma=0;
   float val;
   adc1_config_channel_atten(ADC1_CHANNEL_6,ADC_ATTEN_DB_0);
-  Serial.println(F("reading 100 samples from adc_6"));
+  //Serial.println(F("reading 100 samples from adc_6"));
+  debugging("reading 100 samples from adc_6");
   for (int i=0;i<100;i++){
   //Serial.println(" adc1_get_raw(ADC1_CHANNEL_6");
   //Serial.println(adc1_get_raw(ADC1_CHANNEL_6));
@@ -780,12 +893,14 @@ void measure_voltages(){
   //Serial.println(" adc1_get_raw(ADC1_CHANNEL_6");
   //Serial.println(adc1_get_raw(ADC1_CHANNEL_6));
   val=somma/(float)100;
-  Serial.println(F(" val"));
-  Serial.println(val);
+  //Serial.println(F(" val"));
+  //Serial.println(val);
+  debugging(val);
   float adc_voltage_val = (val * ref_voltage_18650)/4096.0;
   float in_voltage_18650 = adc_voltage_val/(R2_18650/(R1_18650+R2_18650)) ;
-  Serial.println(F(" in_voltage_val_18650"));
-  Serial.println(in_voltage_18650);
+  //Serial.println(F(" in_voltage_val_18650"));
+  //Serial.println(in_voltage_18650);
+  debugging(in_voltage_18650);
   // Read the Analog Input
   //   adc_value_lead = analogRead(lead70Ah_ANALOG_IN);
   //   adc_value_18650 = analogRead(battery18650_ANALOG_IN);
@@ -802,7 +917,8 @@ void measure_voltages(){
   somma=0;
   val=0;
   adc1_config_channel_atten(ADC1_CHANNEL_7,ADC_ATTEN_DB_11);
-  Serial.println(F("reading 100 samples from adc_7"));
+  //Serial.println(F("reading 100 samples from adc_7"));
+  debugging("reading 100 samples from adc_7");
   for (int i=0;i<100;i++){
   //  Serial.println(" adc1_get_raw(ADC1_CHANNEL_6 at 13.4");
   //Serial.println(adc1_get_raw(ADC1_CHANNEL_6));
@@ -815,23 +931,26 @@ void measure_voltages(){
   adc_voltage_val = (val * ref_voltage_lead)/4096.0;
   // Calculate voltage at divider input
   float in_voltage_lead = adc_voltage_val/(R2_lead/(R1_lead+R2_lead)) ;
-  Serial.println(F(" in_voltage_val_lead"));
-  Serial.println(in_voltage_lead);
+  //Serial.println(F(" in_voltage_val_lead"));
+  //Serial.println(in_voltage_lead);
+  debugging(in_voltage_lead);
   //ftoa(float n, char* res, int afterpoint)
-  char Volt_str[8];
+  /*char Volt_str[8];
   ftoa(in_voltage_18650, Volt_str, 2); //converting ftemp (the float variable above) to a string
   client.publish("telemetry","Voltage 18650");
   client.publish("telemetry",Volt_str);
   ftoa(in_voltage_lead, Volt_str, 2); //converting ftemp (the float variable above) to a string
   client.publish("telemetry","Voltage Lead");
-  client.publish("telemetry",Volt_str);
+  client.publish("telemetry",Volt_str);*/
   //Lead 12.7-11.7
   //18650 4.2-2.7
   if (in_voltage_lead<=11.75){
-  client.publish("telemetry","LEAD BATTERY DISCHARGED!!!");
+  //client.publish("telemetry","LEAD BATTERY DISCHARGED!!!");
+  debugging("LEAD BATTERY DISCHARGED!!!");
   }
   if (in_voltage_18650<=2.9){
-  client.publish("telemetry","18650 BATTERY DISCHARGED!!!");
+  //client.publish("telemetry","18650 BATTERY DISCHARGED!!!");
+  debugging("18650 BATTERY DISCHARGED!!!");
   }
   //temp_str[temp_str.length()] = '\0';
   //temp_str.toCharArray(temp1char, temp_str.length()+1); //packaging up the data to publish to mqtt whoa...
@@ -841,12 +960,12 @@ void sensors_reading(){
   unsigned short hum1_measures=5;
   hum1_mcount+=1;
   LastSensors=millis();
-  Serial.print(F(" Requesting temperatures..."));
+  //Serial.print(F(" Requesting temperatures..."));
+  debugging(" Requesting temperatures...");
   /*
   ROM = 28 8E 28 95 F0 1 3C 15
   ROM = 28 C5 FA C 5F 20 1 D8
   */
-  Serial.print(F("Requesting temperatures..."));
   sensors.requestTemperatures(); // Send the command to get temperatures
   Serial.println(F("DONE"));
   /********************************************************************/
@@ -860,30 +979,36 @@ void sensors_reading(){
   tempint=sensors.getTempC(INT_TEMP)*100;
   // You can have more than one DS18B20 on the same bus.  
   // 0 refers to the first IC on the wire
-  int length = snprintf( NULL, 0, "%d", tempint );
-  char* tempint_str =(char*) malloc( length + 1 );
-  snprintf( tempint_str, length + 1, "%d", tempint );
-  client.publish("telemetry","temperatura interna");
-  client.publish("telemetry",tempint_str);
+  //int length = snprintf( NULL, 0, "%d", tempint );
+  //char* tempint_str =(char*) malloc( length + 1 );
+  //snprintf( tempint_str, length + 1, "%d", tempint );
+  //client.publish("telemetry","temperatura interna");
+  //client.publish("telemetry",tempint_str);
+  debugging(tempint);
   while (analogRead(humpin)==0){
-  Serial.println(F("waiting hum1 different from 0"));          // debug value
-  client.publish("telemetry","waiting hum1 different from 0");
+    debugging("waiting hum1 different from 0");
+  //Serial.println(F("waiting hum1 different from 0"));          // debug value
+  //client.publish("telemetry","waiting hum1 different from 0");
   } 
   for (unsigned short hum1_mcount=0;hum1_mcount<=hum1_measures;hum1_mcount++){ 
   sensorsdata.hum1 += analogRead(humpin);  // read the input pin
   }
   sensorsdata.hum1=sensorsdata.hum1/hum1_measures;
   // temp1 = analogRead(temppin);  // read the input pin
-  Serial.println(F("humidity"));          // debug value
-  Serial.println(sensorsdata.hum1);          // debug value
+  //Serial.println(F("humidity"));          // debug value
+  //Serial.println(sensorsdata.hum1);          // debug value
+  debugging(sensorsdata.hum1);
   //     Serial.println("temperature");          // debug value
   // Serial.println(temp1);          // debug value
-  Serial.println(remotedata.forcestart);          // debug value
-  Serial.println(F("sensorsdata.temp1/100"));          // debug value
-  Serial.println(sensorsdata.temp1/100);          // debug value
+  //Serial.println(remotedata.forcestart);          // debug value
+  //Serial.println(F("sensorsdata.temp1/100"));          // debug value
+  //Serial.println(sensorsdata.temp1/100);          // debug value
+  debugging("Real T1 multiplied by 100");
+  debugging(sensorsdata.temp1);
   if (sensorsdata.temp1<-50*100){
-  Serial.println(F("Day after tomorrow or SENSOR PROBLEM!!!"));       // debug value
-  client.publish("telemetry","Day after tomorrow or SENSOR PROBLEM!!!");
+    debugging("Day after tomorrow or SENSOR PROBLEM!!!");
+  //Serial.println(F("Day after tomorrow or SENSOR PROBLEM!!!"));       // debug value
+  //client.publish("telemetry","Day after tomorrow or SENSOR PROBLEM!!!");
   }
 }
 
@@ -938,6 +1063,15 @@ void ftoa(float n, char* res, int afterpoint){
 
 //Pubblish messages to MQTT:
 //unsigned long to char array
+char* i2chara(const char* A, int B){
+  char *buf;
+  size_t sz;
+  sz = snprintf(NULL, 0, A, B);
+  buf = (char *)malloc(sz + 1); /* make sure you check for != NULL in real code */
+  snprintf(buf, sz+1, A, B);
+  return buf;
+}
+//unsigned long to char array
 char* ul2chara(const char* A, unsigned long B){
   char *buf;
   size_t sz;
@@ -957,6 +1091,15 @@ char* f2chara(const char* A, float B){
 }
 //unsigned short to char array
 char* us2chara(const char *A, unsigned short B){
+  char *buf;
+  size_t sz;
+  sz = snprintf(NULL, 0, A, B);
+  buf = (char *)malloc(sz + 1); /* make sure you check for != NULL in real code */
+  snprintf(buf, sz+1, A, B);
+  return buf;
+}
+// short to char array
+char* s2chara(const char *A, short B){
   char *buf;
   size_t sz;
   sz = snprintf(NULL, 0, A, B);
@@ -1027,87 +1170,102 @@ void loop() {
     //sensorsdata.lastactive=*asctime(&tm);
     water_on();
     EMERGENCY_STOP=false;
-    Serial.println(F("Avvio innaffiatura per comando da remoto"));
-    client.publish("telemetry", "Avvio innaffiatura per forcestart=true");
+    debugging("Avvio innaffiatura per comando da remoto");
+    //Serial.println(F("Avvio innaffiatura per comando da remoto"));
+    //client.publish("telemetry", "Avvio innaffiatura per forcestart=true");
     }
   else{
     if (remotedata.forcestart){
     //  printLocalTime();
     //sensorsdata.lastactive=*asctime(&tm);
     EMERGENCY_STOP=false;
-    Serial.println(F("Mi assicuro di mettere emergency_stop a false se remotedata.forcestart is true"));
-    client.publish("telemetry", "Mi assicuro di mettere emergency_stop a false se remotedata.forcestart is true");
+    debugging("Mi assicuro di mettere emergency_stop a false se remotedata.forcestart is true");
+    //Serial.println(F("Mi assicuro di mettere emergency_stop a false se remotedata.forcestart is true"));
+    //client.publish("telemetry", "Mi assicuro di mettere emergency_stop a false se remotedata.forcestart is true");
   }
   if (wateringon&&(millis()-sensorsdata.watertick)>=MAX_PUMP_TIME){
   water_off();
   if (remotedata.forcestart==1&&!EMERGENCY_STOP){
   remotedata.forcestart=0;
+  debugging("setting forcestart=0 when reached max_pump_time");
   }
-  Serial.println(F("Fermo pompa per troppo tempo acceso"));
-  client.publish("telemetry", "Interompo innaffiatura per pompa accesa troppo tempo");
+  debugging("Fermo pompa per troppo tempo acceso");
+  //Serial.println(F("Fermo pompa per troppo tempo acceso"));
+  //client.publish("telemetry", "Interompo innaffiatura per pompa accesa troppo tempo");
   }else{
   if (!remotedata.forcestart && sensorsdata.hum1 > remotedata.humidityth && sensorsdata.temp1*100>lower_temp1th && sensorsdata.temp1*100<upper_temp1th && Hour<=WATERING_HOUR+WATERING_HOUR_range&&Hour>=WATERING_HOUR-WATERING_HOUR_range&& !EMERGENCY_STOP && !remotedata.external_pump) {
   printLocalTime();
   //     sensorsdata.lastactive=*asctime(&tm);
   if (!wateringon){
-  Serial.println(F("Avvio watering relais"));
-  client.publish("telemetry", "Avvio watering relais");
+  //Serial.println(F("Avvio watering relais"));
+  //client.publish("telemetry","Avvio watering relais");
+  debugging("Avvio watering relais");
   water_on();
   }
   else{
-  Serial.println(F("relais watering gia attivi"));
-  client.publish("telemetry", "relais watering gia attivi");
+    debugging("relais watering gia attivi");
+ // Serial.println(F("relais watering gia attivi"));
+ // client.publish("telemetry", "relais watering gia attivi");
   }
-  Serial.println(F("sensorsdata.lastactive=asctime(&tm)"));
-  Serial.println(asctime(&tm));
-  Serial.println(F("Avvio innaffiatura per umidita terreno bassa e temperatura sopra soglia"));
-  client.publish("telemetry", "Avvio innaffiatura per umidita terreno bassa e temperatura sopra soglia");
+  //Serial.println(F("sensorsdata.lastactive=asctime(&tm)"));
+  //Serial.println(asctime(&tm));
+  //Serial.println(F("Avvio innaffiatura per umidita terreno bassa e temperatura sopra soglia"));
+  //client.publish("telemetry", "Avvio innaffiatura per umidita terreno bassa e temperatura sopra soglia");
+  debugging("Avvio innaffiatura per umidita terreno bassa e temperatura sopra soglia");
   }
   else{
   if (!remotedata.forcestart && sensorsdata.hum1 > remotedata.humidityth && (sensorsdata.temp1*100>lower_temp1th && sensorsdata.temp1*100<upper_temp1th) && (Hour<=WATERING_HOUR+WATERING_HOUR_range&&Hour>=WATERING_HOUR-WATERING_HOUR_range) && EMERGENCY_STOP && !remotedata.external_pump) {
-  Serial.println(F("False al chech per soglia umidita determinato da emergency_stop true"));
-  client.publish("telemetry", "False al chech per soglia umidita determinato da emergency_stop true");
+  //Serial.println(F("False al check per soglia umidita determinato da emergency_stop true"));
+  //client.publish("telemetry", "False al check per soglia umidita determinato da emergency_stop true");
+  debugging("False al check per soglia umidita determinato da emergency_stop true");
   } 
   if (!wateringon && sensorsdata.hum1>remotedata.humidityth && (Hour<=WATERING_HOUR+WATERING_HOUR_range&&Hour>=WATERING_HOUR-WATERING_HOUR_range) && !EMERGENCY_STOP && !(sensorsdata.temp1*100>lower_temp1th && sensorsdata.temp1*100<upper_temp1th) && !remotedata.external_pump){
   if (sensorsdata.temp1*100<=lower_temp1th)
-  {          Serial.println(F("Bassa umidita ma temperatura sotto soglia alla watering_hour"));        //
-  client.publish("telemetry","Bassa umidita ma temperatura sotto soglia alla watering_hour");
+  { //Serial.println(F("Bassa umidita ma temperatura sotto soglia alla watering_hour"));        //
+  //client.publish("telemetry","Bassa umidita ma temperatura sotto soglia alla watering_hour");
+  debuging("Bassa umidita ma temperatura sotto soglia alla watering_hour");
   }
   if (sensorsdata.temp1*100>upper_temp1th){
-  Serial.println(F("Bassa umidita ma temperatura sopra soglia alla watering_hour"));        //
-  client.publish("telemetry","Bassa umidita ma temperatura sopra soglia alla watering_hour");
+  //Serial.println(F("Bassa umidita ma temperatura sopra soglia alla watering_hour"));        //
+  //client.publish("telemetry","Bassa umidita ma temperatura sopra soglia alla watering_hour");
+  debugging("Bassa umidita ma temperatura sopra soglia alla watering_hour");
   }
   }
   else{
   //&& (sensorsdata.temp1*100>lower_temp1th && sensorsdata.temp1*100<upper_temp1th)
   if (sensorsdata.hum1>remotedata.humidityth && !wateringon && !EMERGENCY_STOP && !remotedata.external_pump && !(Hour<=WATERING_HOUR+WATERING_HOUR_range&&Hour>=WATERING_HOUR-WATERING_HOUR_range)){
-  Serial.println(F("Bassa umidita ma non e' l'ora di innaffiare"));          //
-  client.publish("telemetry","Bassa umidita ma non e' l'ora di innaffiare");
+  //Serial.println(F("Bassa umidita ma non e' l'ora di innaffiare"));          //
+  //client.publish("telemetry","Bassa umidita ma non e' l'ora di innaffiare");
+  debugging("Bassa umidita ma non e' l'ora di innaffiare");
   }
   else{
   if (EMERGENCY_STOP && wateringon && !remotedata.forcestart){
   water_off();
-  Serial.println(F("EMERGENCY_STOP")); //
-  client.publish("telemetry","EMERGENCY_STOP!!!");
+  //Serial.println(F("EMERGENCY_STOP")); //
+  //client.publish("telemetry","EMERGENCY_STOP!!!");
+  debugging("EMERGENCY_STOP!!!");
   }
   else{
   if (!remotedata.forcestart && remotedata.external_pump && !wateringon){
-  Serial.println(F("external_pump setup"));        //
-  client.publish("telemetry","external_pump setup");
+  //Serial.println(F("external_pump setup"));        //
+  //client.publish("telemetry","external_pump setup");
+  debugging("external_pump setup");
   digitalWrite(RelayValveControll, LOW);
   // delay(15*1000);
   for (unsigned long tmp=millis();millis()-tmp<=15*1000;){}
   }
   else{
   if (wateringon && force_switchoff){
-  Serial.println(F("turning off from forcestart"));          //
-  client.publish("telemetry","turning off from forcestart");
+  //Serial.println(F("turning off from forcestart"));          //
+  //client.publish("telemetry","turning off from forcestart");
+  debugging("turning off from forcestart");
   water_off();
   }
   else{
     if (wateringon && !remotedata.forcestart){
-      Serial.println(F("Should I switch off even if force_switch_off not triggered"));       //
-      client.publish("telemetry","Should I switch off even if force_switch_off not triggered");
+      //Serial.println(F("Should I switch off even if force_switch_off not triggered"));       //
+      //client.publish("telemetry","Should I switch off even if force_switch_off not triggered");
+      debugging("Should I switch off even if force_switch_off not triggered");
       water_off();
     }
   if (sensorsdata.hum1<=0 && sensorsdata.temp1<=0){
