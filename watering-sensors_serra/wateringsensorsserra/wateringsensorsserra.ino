@@ -393,6 +393,18 @@ const char *format="%hi";
       client.publish("telemetry",str);
       client.publish("telemetry",mychar);
 }
+void debugging(bool what){
+ char str[20];
+const char *format="%s";
+ char *mychar;
+const char *vOut = what ? "true" : "false";
+ mychar=str2chara(format,vOut);
+   getName(what,str);
+            Serial.println(F(str));
+    Serial.println(what);
+      client.publish("telemetry",str);
+      client.publish("telemetry",mychar);
+}
 void debugging(size_t what){
 const char *format="%hu";
 char str[20];
@@ -1116,6 +1128,14 @@ char* str2chara(const char* A, char* B){
   snprintf(buf, sz+1, A, B);
   return buf;
 }
+char* str2chara(const char* A,const char* B){
+  char *buf;
+  size_t sz;
+  sz = snprintf(NULL, 0, A, B);
+  buf = (char *)malloc(sz + 1); /* make sure you check for != NULL in real code */
+  snprintf(buf, sz+1, A, B);
+  return buf;
+}
 /*
 d or i  Signed decimal integer  392
 u Unsigned decimal integer  7235
@@ -1223,7 +1243,7 @@ void loop() {
   if (sensorsdata.temp1*100<=lower_temp1th)
   { //Serial.println(F("Bassa umidita ma temperatura sotto soglia alla watering_hour"));        //
   //client.publish("telemetry","Bassa umidita ma temperatura sotto soglia alla watering_hour");
-  debuging("Bassa umidita ma temperatura sotto soglia alla watering_hour");
+  debugging("Bassa umidita ma temperatura sotto soglia alla watering_hour");
   }
   if (sensorsdata.temp1*100>upper_temp1th){
   //Serial.println(F("Bassa umidita ma temperatura sopra soglia alla watering_hour"));        //
@@ -1269,22 +1289,26 @@ void loop() {
       water_off();
     }
   if (sensorsdata.hum1<=0 && sensorsdata.temp1<=0){
-    Serial.println(F("still no sensors reading"));          //
-    client.publish("telemetry","still no sensors reading");
+    //Serial.println(F("still no sensors reading"));          //
+    //client.publish("telemetry","still no sensors reading");
+    debugging("still no sensors reading");
   }
   else{
     if (remotedata.forcestart && wateringon){
-    Serial.println(F("watering due to forcestart"));          //
-    client.publish("telemetry","watering due to forcestart");
+    //Serial.println(F("watering due to forcestart"));          //
+    //client.publish("telemetry","watering due to forcestart");
+    debugging("watering due to forcestart");
     if (EMERGENCY_STOP){
-      Serial.println(F("EMERGENCY_STOP but watering due to forcestart"));          //
-      client.publish("telemetry","EMERGENCY_STOP but watering due to forcestart");
+      //Serial.println(F("EMERGENCY_STOP but watering due to forcestart"));          //
+      //client.publish("telemetry","EMERGENCY_STOP but watering due to forcestart");
+      debugging("EMERGENCY_STOP but watering due to forcestart");
     }
   }
   else{
   if (remotedata.forcestart && remotedata.external_pump){
-  Serial.println(F("conflicting forcestart and external_pump: clean forcestart and setting up for external pump"));        //
-  client.publish("telemetry","conflicting forcestart and external_pump: clean forcestart and setting up for external pump");
+  //Serial.println(F("conflicting forcestart and external_pump: clean forcestart and setting up for external pump"));        //
+  //client.publish("telemetry","conflicting forcestart and external_pump: clean forcestart and setting up for external pump");
+  debugging("conflicting forcestart and external_pump: clean forcestart and setting up for external pump");
   water_off();
   remotedata.forcestart=0;
   digitalWrite(RelayValveControll, LOW);
@@ -1293,63 +1317,84 @@ void loop() {
   }
   else{
   if (!remotedata.forcestart && sensorsdata.hum1 <= remotedata.humidityth && wateringon && !EMERGENCY_STOP && !remotedata.external_pump){
-  Serial.println(F("REached humidity threshold in another hour or temp below th: watering off"));//
-  client.publish("telemetry","REached humidity threshold in another hour or temp below th: watering off");
+  //Serial.println(F("REached humidity threshold in another hour or temp below th: watering off"));//
+  //client.publish("telemetry","REached humidity threshold in another hour or temp below th: watering off");
+  debugging("REached humidity threshold in another hour or temp below th: watering off");
   water_off();
   }
   else{
   if (!remotedata.forcestart && sensorsdata.hum1 <= remotedata.humidityth && !wateringon && !EMERGENCY_STOP && !remotedata.external_pump){
-  Serial.println(F("Humidity below threshold e tutto va bene"));//
-  client.publish("telemetry","Humidity below threshold e tutto va bene");
+  //Serial.println(F("Humidity below threshold e tutto va bene"));//
+  //client.publish("telemetry","Humidity below threshold e tutto va bene");
+  debugging("Humidity below threshold e tutto va bene");
   }
   else{
   if (!remotedata.forcestart && sensorsdata.hum1 <= remotedata.humidityth && !wateringon && EMERGENCY_STOP && !remotedata.external_pump){
-  Serial.println(F("Humidity below threshold e EMERGENCY_STOP true"));          //
-  client.publish("telemetry","Humidity below threshold e EMERGENCY_STOP true");
+  //Serial.println(F("Humidity below threshold e EMERGENCY_STOP true"));          //
+  //client.publish("telemetry","Humidity below threshold e EMERGENCY_STOP true");
+  debugging("Humidity below threshold e EMERGENCY_STOP true");
   }
-  Serial.println(F("unknow state??"));        //
-  client.publish("telemetry","unknow state??");
-  Serial.println(F("remotedata.forcestart"));          //
-  Serial.println(remotedata.forcestart);          //
+  //Serial.println(F("unknow state??"));        //
+  //client.publish("telemetry","unknow state??");
+  //Serial.println(F("remotedata.forcestart"));          //
+  //Serial.println(remotedata.forcestart);          //
+  debugging("unknow state??");
+  debugging(remotedata.forcestart);
   if (remotedata.forcestart){
-    client.publish("telemetry","remotedata.forcestart true");
+    //client.publish("telemetry","remotedata.forcestart true");
+    debugging("remotedata.forcestart true");
   }
   else{
-    client.publish("telemetry","remotedata.forcestart false");
+    //client.publish("telemetry","remotedata.forcestart false");
+    debugging("remotedata.forcestart false");
   }
-  Serial.println(F("sensorsdata.hum1 <= remotedata.humidityth")); //
-  Serial.println(sensorsdata.hum1 <= remotedata.humidityth);          //
+  //Serial.println(F("sensorsdata.hum1 <= remotedata.humidityth")); //
+  //Serial.println(sensorsdata.hum1 <= remotedata.humidityth);          //
+  debugging(sensorsdata.hum1 <= remotedata.humidityth);
   if (sensorsdata.hum1 <= remotedata.humidityth){
-    client.publish("telemetry","sensorsdata.hum1 <= remotedata.humidityth true");
+    debugging("sensorsdata.hum1 <= remotedata.humidityth true");
+//client.publish("telemetry","sensorsdata.hum1 <= remotedata.humidityth true");
     }
   else{
-    client.publish("telemetry","sensorsdata.hum1 > remotedata.humidityth false");
+    debugging("sensorsdata.hum1 > remotedata.humidityth false");
+   // client.publish("telemetry","sensorsdata.hum1 > remotedata.humidityth false");
   }
-  Serial.println(F("!wateringon"));          //
-  Serial.println(!wateringon);          //
-  if (!wateringon){client.publish("telemetry","!wateringon true");}else{client.publish("telemetry","!wateringon false");}
-  Serial.println(F("EMERGENCY_STOP"));          //
-  Serial.println(EMERGENCY_STOP);          //
+  //Serial.println(F("!wateringon"));          //
+  //Serial.println(!wateringon);          //
+  debugging(!wateringon);
+  if (!wateringon){debugging("!wateringon true");//client.publish("telemetry","!wateringon true");
+  }else{debugging("!wateringon false");//client.publish("telemetry","!wateringon false");
+  }
+  //Serial.println(F("EMERGENCY_STOP"));          //
+  //Serial.println(EMERGENCY_STOP);          //
+    debugging(EMERGENCY_STOP);
   if (EMERGENCY_STOP){
-    client.publish("telemetry","EMERGENCY_STOP true");
+    //client.publish("telemetry","EMERGENCY_STOP true");
+      debugging("EMERGENCY_STOP true");
     }
   else{
-    client.publish("telemetry","EMERGENCY_STOP false");
+   // client.publish("telemetry","EMERGENCY_STOP false");
+      debugging("EMERGENCY_STOP false");
   }
-  Serial.println(F("remotedata.external_pump"));          //
-  Serial.println(remotedata.external_pump);          //
-  if (remotedata.external_pump){client.publish("telemetry","remotedata.external_pump true");
+  //Serial.println(F("remotedata.external_pump"));          //
+  //Serial.println(remotedata.external_pump);          //
+      debugging(remotedata.external_pump);
+  if (remotedata.external_pump){debugging("remotedata.external_pump true");//client.publish("telemetry","remotedata.external_pump true");
   }
   else{
-  client.publish("telemetry","remotedata.external_pump false");
+      debugging("remotedata.external_pump false");
+ // client.publish("telemetry","remotedata.external_pump false");
   }
-  Serial.println(F("!(Hour<=WATERING_HOUR+WATERING_HOUR_range&&Hour>=WATERING_HOUR-WATERING_HOUR_range)"));          //
-  Serial.println(!(Hour<=WATERING_HOUR+WATERING_HOUR_range&&Hour>=WATERING_HOUR-WATERING_HOUR_range));          //
+    debugging(!(Hour<=WATERING_HOUR+WATERING_HOUR_range&&Hour>=WATERING_HOUR-WATERING_HOUR_range));
+//  Serial.println(F("!(Hour<=WATERING_HOUR+WATERING_HOUR_range&&Hour>=WATERING_HOUR-WATERING_HOUR_range)"));          //
+ // Serial.println(!(Hour<=WATERING_HOUR+WATERING_HOUR_range&&Hour>=WATERING_HOUR-WATERING_HOUR_range));          //
   if (!(Hour<=WATERING_HOUR+WATERING_HOUR_range&&Hour>=WATERING_HOUR-WATERING_HOUR_range)){
   client.publish("telemetry","!(Hour<=WATERING_HOUR+WATERING_HOUR_range&&Hour>=WATERING_HOUR-WATERING_HOUR_range) true");
+    debugging("!(Hour<=WATERING_HOUR+WATERING_HOUR_range&&Hour>=WATERING_HOUR-WATERING_HOUR_range) true");
   }
   else{
   client.publish("telemetry","!(Hour<=WATERING_HOUR+WATERING_HOUR_range&&Hour>=WATERING_HOUR-WATERING_HOUR_range) false");
+  debugging("!(Hour<=WATERING_HOUR+WATERING_HOUR_range&&Hour>=WATERING_HOUR-WATERING_HOUR_range) false");
   }
   }
   }
