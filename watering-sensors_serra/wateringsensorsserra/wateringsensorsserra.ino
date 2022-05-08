@@ -1413,23 +1413,29 @@ void loop() {
   wateringon = ((digitalRead(RelayWaterControll) == LOW) || (digitalRead(RelayWaterControll) == 0));
   //Serial.println("internal_tick");
   //Serial.println(internal_tick);
-  Serial.println(F("sensorsdata.watertick"));
-  Serial.println(sensorsdata.watertick);
-  Serial.println(F("remotedata.pumptime"));
-  Serial.println(remotedata.pumptime);
-  Serial.println(F("wateringon()"));
-  Serial.println(wateringon);
+  debugging(sensorsdata.watertick);
+  //Serial.println(F("sensorsdata.watertick"));
+  //Serial.println(sensorsdata.watertick);
+  debugging(remotedata.pumptime);
+  //Serial.println(F("remotedata.pumptime"));
+  //Serial.println(remotedata.pumptime);
+    debugging(wateringon);
+  //Serial.println(F("wateringon()"));
+  //Serial.println(wateringon);
   if (wateringon){
-  Serial.println(F("wateringon true"));
+     debugging("wateringon true");
+//  Serial.println(F("wateringon true"));
   }
   if (((millis()-sensorsdata.watertick)>=remotedata.pumptime)&&(wateringon)&&!remotedata.forcestart){
   water_off();            
   remotedata.forcestart=false;
-  client.publish("telemetry","watering off due to (millis()-sensorsdata.watertick)>=remotedata.pumptime");
+  debugging("watering off due to (millis()-sensorsdata.watertick)>=remotedata.pumptime");
+//  client.publish("telemetry","watering off due to (millis()-sensorsdata.watertick)>=remotedata.pumptime");
   }
   wateringon = ((digitalRead(RelayWaterControll) == LOW) || (digitalRead(RelayWaterControll) == 0));
   if ((millis()-sensorsdata.watertick<=remotedata.pumptime)&&(wateringon)){
-  Serial.println(F("watering on"));
+//  Serial.println(F("watering on"));
+  debugging("Still watering since pimptime not reached (what about humidityth??");
   Serial.println(F("millis()-sensorsdata.watertick"));
   Serial.println(millis()-sensorsdata.watertick);
   }
@@ -1461,8 +1467,9 @@ void loop() {
   //  epocheau_tm=(time_t)epocheau;
   // localtime_r(&epocheau_tm, &tmepocheeau);// update the structure tm with the current time
   //       Serial.printf("The current date/time is: %s", asctime(&tmepocheeau));
-  Serial.println(F("sensorsdata.watertick/1000"));
-  Serial.println(sensorsdata.watertick/1000);
+  //Serial.println(F("sensorsdata.watertick/1000"));
+  //Serial.println(sensorsdata.watertick/1000);
+  debugging(sensorsdata.watertick);
   Serial.println(F("mktime(&epochstart_tm)"));
   Serial.println(mktime(&epochstart_tm));
   Serial.println(F("mktime(&epochstart_tm)+sensorsdata.watertick/1000"));
@@ -1493,13 +1500,15 @@ void loop() {
   //watertick_str.toCharArray(watertickchar, watertick_str.length() + 1);//packaging up the data to publish to mqtt whoa...  
   stringformat="%lu";
   watertickchar=ul2chara(stringformat,sensorsdata.watertick);
-  client.publish("telemetry","watertickchar");
-  client.publish("telemetry",watertickchar);
+  //client.publish("telemetry","watertickchar");
+  //client.publish("telemetry",watertickchar);
+  debugging(watertickchar);
   client.publish("lastactive",epocheauchar);
   }
   else{
-  Serial.println(F("Last watering: never (sensorsdata.watertick==0)"));
-  client.publish("telemetry","epocheauchar date/time: never (sensorsdata.watertick==0)");
+  //Serial.println(F("Last watering: never (sensorsdata.watertick==0)"));
+  debugging("epocheauchar date/time: never (sensorsdata.watertick==0)");
+  //client.publish("telemetry","epocheauchar date/time: never (sensorsdata.watertick==0)");
   client.publish("lastactive","never");
   }
   prev_read=millis();
@@ -1512,9 +1521,12 @@ void loop() {
   if (sensorsdata.hum1<humm&&!(sensorsdata.hum1==0)){
   humm=sensorsdata.hum1;
   }
-  Serial.println(F("Minimo massimo umidita"));
-  Serial.println(humm);
-  Serial.println(humM);
+  //Serial.println(F("Minimo massimo umidita"));
+  debugging("Minimo massimo umidita");
+  //Serial.println(humm);
+  debugging(humm);
+  //Serial.println(humM);
+  debugging(humM);
   if (humM-humm<200 && ((millis()-sensorsdata.watertick)>=10*60*1000) && !remotedata.forcestart){
   EMERGENCY_STOP=true;
   }
@@ -1526,9 +1538,10 @@ void loop() {
   }
       Serial.println(F("line 1274"));
   size_t NumberOfElements = sizeof(time_hist)/sizeof(time_hist[0]);
-        Serial.println(F("NumberOfElements"));
-      Serial.println(NumberOfElements);
-      Serial.println(F("line 1278"));
+       // Serial.println(F("NumberOfElements"));
+  debugging(NumberOfElements);
+      //Serial.println(NumberOfElements);
+      //Serial.println(F("line 1278"));
   if (NumberOfElements>1){
         Serial.println(F("line 1280"));
         double mydiff=difftime(now_tt,*time_hist);
@@ -1538,20 +1551,25 @@ void loop() {
   hist_var(time_hist,now_tt,hum1_hist,sensorsdata.hum1,temp1_hist,sensorsdata.temp1);
   for (unsigned short i=0;i<hist_index_max;i++){
             Serial.println(F("line 1283"));
-  client.publish("telemetry","time hist");
-  client.publish("telemetry",str2chara("%s",asctime(localtime(&time_hist[i]))));
-  client.publish("telemetry","hum1 hist");
-  stringformat="%hu";
-  client.publish("telemetry",us2chara(stringformat,hum1_hist[i]));
-  stringformat="%d";
-  client.publish("telemetry","temp1 hist");
-  client.publish("telemetry",us2chara(stringformat,temp1_hist[i]));
-  Serial.println(F("time hist"));
-  Serial.println(asctime(localtime(&time_hist[i])));
-  Serial.println(F("hum1_hist"));
-  Serial.println(hum1_hist[i]);
-  Serial.println(F("temp1_hist"));
-  Serial.println(temp1_hist[i]);
+//  client.publish("telemetry","time hist");
+//  client.publish("telemetry",str2chara("%s",asctime(localtime(&time_hist[i]))));
+  //client.publish("telemetry","hum1 hist");
+  //stringformat="%hu";
+  //client.publish("telemetry",us2chara(stringformat,hum1_hist[i]));
+  //stringformat="%d";
+  //client.publish("telemetry","temp1 hist");
+  debugging(temp1_hist[i]);
+  //client.publish("telemetry",us2chara(stringformat,temp1_hist[i]));
+  //Serial.println(F("time hist"));
+  debugging(asctime(localtime(&time_hist[i])));
+  //Serial.println(asctime(localtime(&time_hist[i])));
+  //debugging(asctime(localtime(&time_hist[i])));
+  //Serial.println(F("hum1_hist"));
+  //Serial.println(hum1_hist[i]);
+    debugging(hum1_hist[i]);
+//Serial.println(F("temp1_hist"));
+  debugging(hum1_hist[i]);
+  //Serial.println(temp1_hist[i]);
   }
   Serial.println(F("line 1299"));
   }
@@ -1569,12 +1587,16 @@ void loop() {
   sensorsdata.temp1_min=sensorsdata.temp1;
   hour_temp1_min=tm.tm_hour;
   }
-  Serial.println(F("Minimo massimo umidita"));
-  Serial.println(humm);
-  Serial.println(humM);
+  //Serial.println(F("Minimo massimo umidita"));
+  debugging("Minimo massimo umidita");
+  //Serial.println(humM);
+  debugging(humM);
+  //Serial.println(humM);
+  debugging(humM);
   if (humm!=0&&humM-humm<200 && ((millis()-sensorsdata.watertick)>=5*60*1000)){
-  client.publish("telemetry","hum1 not decreasing enough: emergency_stop=true");
-  Serial.println(F("hum1 not decreasing enough: emergency_stop=true"));
+  //client.publish("telemetry","hum1 not decreasing enough: emergency_stop=true");
+  //Serial.println(F("hum1 not decreasing enough: emergency_stop=true"));
+  debugging("hum1 not decreasing enough: emergency_stop=true");
   EMERGENCY_STOP=true;
   }
   // if (difftime(tm, time_sequence_hist[0])>20*60){
@@ -1585,8 +1607,9 @@ void loop() {
   sensorsdata.temp1_max=1000;
   //humM=1600;
   //humm=3000;
-  client.publish("telemetry","resetting temp1_min, temp1_max, startcounter");
-  Serial.println(F("resetting humm, humM, temp1_min, temp1_max, startcounter"));
+  //client.publish("telemetry","resetting temp1_min, temp1_max, startcounter");
+  //Serial.println(F("resetting humm, humM, temp1_min, temp1_max, startcounter"));
+  debugging("resetting humm, humM, temp1_min, temp1_max, startcounter");
   }
   if ((millis()-sleep_timer>=5*60*1000)&&!wateringon&&!remotedata.forcestart){
   preferences.begin("remotedata", false);
@@ -1600,7 +1623,8 @@ void loop() {
   time_t wake_tt = mktime(&wakeTM);
   //snprintf ( wakechar, 40, "Next wake:\n %s",ctime(&wake_tt));
   // Note: Key name is limited to 15 chars.
-   Serial.println(F("Writing data to flash before Going to sleep"));
+  debugging("Writing data to flash before Going to sleep");
+   //Serial.println(F("Writing data to flash before Going to sleep"));
   preferences.putBool("forcestart", remotedata.forcestart);
   preferences.putBool("EMERGENCY_STOP", EMERGENCY_STOP);
   preferences.putULong("pumptime", remotedata.pumptime);
@@ -1615,10 +1639,12 @@ void loop() {
   preferences.putBytes("temp1_hist", (byte*)(temp1_hist), sizeof(temp1_hist));
   // Close the Preferences
   preferences.end();
-  Serial.println(F("Going to sleep now"));
-  Serial.println(F("boot counter:"));
-  Serial.println(bootCount);
-  client.publish("telemetry","going to sleep");
+  //Serial.println(F("Going to sleep now"));
+  //Serial.println(F("boot counter:"));
+  //Serial.println(bootCount);
+  debugging(bootCount);
+  //client.publish("telemetry","going to sleep");
+  debugging("going to sleep");
   //client.publish("telemetry",wakechar);
   client.publish("telemetry",str2chara("Next wake:\r %s",ctime(&wake_tt)));
   //delay(1000);
