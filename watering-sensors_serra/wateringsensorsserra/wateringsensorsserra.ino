@@ -71,7 +71,7 @@ float Vref_lead_tune;
 //#include <Arduino.h>
 #include <WiFi.h>
 #include <PubSubClient.h>
-#define MQTT_KEEP_ALIVE 5 // int, in seconds
+#define MQTT_KEEP_ALIVE 60 // int, in seconds
 #define MQTT_CLEAN_SESSION false // bool, resuse existing session
 #define MQTT_TIMEOUT 15000 // int, in miliseconds
 #include <time.h>                       // time() ctime()
