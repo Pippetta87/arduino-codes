@@ -1002,7 +1002,7 @@ void sensors_reading(){
   //Serial.println(F("waiting hum1 different from 0"));          // debug value
   //client.publish("telemetry","waiting hum1 different from 0");
   } 
-  for (unsigned short hum1_mcount=0;hum1_mcount<=hum1_measures;hum1_mcount++){ 
+  for (unsigned short hum1_mcount=0;hum1_mcount<hum1_measures;hum1_mcount++){ 
   sensorsdata.hum1 += analogRead(humpin);  // read the input pin
   }
   sensorsdata.hum1=sensorsdata.hum1/hum1_measures;
@@ -1184,7 +1184,7 @@ void loop() {
   // internal_tick = millis();
   if (millis()-LastSensors>30*1000){
     sensors_reading();
-  }
+  
   if (remotedata.forcestart && !remotedata.external_pump && !wateringon && force_switchon){
     //  printLocalTime();
     //sensorsdata.lastactive=*asctime(&tm);
@@ -1203,6 +1203,7 @@ void loop() {
     //Serial.println(F("Mi assicuro di mettere emergency_stop a false se remotedata.forcestart is true"));
     //client.publish("telemetry", "Mi assicuro di mettere emergency_stop a false se remotedata.forcestart is true");
   }
+  debugging(sensorsdata.watertick);
   if (wateringon&&(millis()-sensorsdata.watertick)>=MAX_PUMP_TIME){
   water_off();
   if (remotedata.forcestart==1&&!EMERGENCY_STOP){
@@ -1395,6 +1396,7 @@ void loop() {
   else{
   client.publish("telemetry","!(Hour<=WATERING_HOUR+WATERING_HOUR_range&&Hour>=WATERING_HOUR-WATERING_HOUR_range) false");
   debugging("!(Hour<=WATERING_HOUR+WATERING_HOUR_range&&Hour>=WATERING_HOUR-WATERING_HOUR_range) false");
+  }
   }
   }
   }
