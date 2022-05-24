@@ -1595,6 +1595,7 @@ void loop() {
   debugging(humM);
   //Serial.println(humM);
   debugging(humM);
+      Serial.println(F("line 1598"));
   if (humm!=0&&humM-humm<200 && ((millis()-sensorsdata.watertick)>=5*60*1000)){
   //client.publish("telemetry","hum1 not decreasing enough: emergency_stop=true");
   //Serial.println(F("hum1 not decreasing enough: emergency_stop=true"));
