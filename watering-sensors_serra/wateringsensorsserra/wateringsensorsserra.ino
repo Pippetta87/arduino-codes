@@ -211,7 +211,7 @@ RTC_DATA_ATTR unsigned short bootCount = 0;
 //OTA
 const char* host = "esp32";
 
-WebServer server(80);
+WebServer server(6660);
 
 /*
  * Login page
@@ -992,6 +992,8 @@ void ftoa(float n, char* res, int afterpoint)
 }
 
 void loop() {
+    Serial.println("WiFi.macAddress()");
+  Serial.println(WiFi.macAddress());
 //OTA
   server.handleClient();
 //end OTA
