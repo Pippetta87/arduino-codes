@@ -100,13 +100,13 @@ unsigned short RelayWaterControll = 25;
 unsigned short RelayValveControll = 26;
 
 int32_t conchannel;
-const char* ssid = "Vodafoneebeb";
-const char* password = "1lUB4jV1pdCCczvNdMyOvQQK";
+const char* ssid = "Malaphone";
+const char* password = "g7u1xytgwyz";
 const char* mqtt_server = "mqtt.flespi.io";
 const int mqttPort = 1883;
-const char* mqttUser = "iCF53tOTdMwPvvCQFdjFI0YaagAoIVjQlOJe5nV7XhMgAdX5g6AOVmOTsc7YVgF6";
+const char* mqttUser = "aBStKNDupRrLy0hguvUcJV44L09gtoOuPuLn7fHkUWViM1m6k46SQ0KpPJv8X7qA";
 const char* mqttPassword = "";
-const char* clientId = "serra.abete.ruf";
+const char* clientId = "testing.serra.pisa";
 String bssidstr;
 uint8_t encryptionType;
 int32_t RSSI;
@@ -267,13 +267,13 @@ prevRssi = 0;
     Serial.println("Connecting to bssid");
   Serial.println(bssidstr);
  
-          WiFi.begin(ssid,password,conchannel,bssid);
+          WiFi.begin(ssid,password);
 Serial.println(WiFi.status());
 WiFi.printDiag(Serial);
-  while (WiFi.status() != WL_CONNECTED) {
-    delay(1000);
-    Serial.print(".");
-  }
+ while (WiFi.status() != WL_CONNECTED) {
+ delay(100);
+ Serial.print(".");
+ }
 
   randomSeed(micros());
 
