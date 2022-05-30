@@ -68,13 +68,12 @@ float Vref_lead_tune;
 //#include <stdio.h>
 #include <driver/adc.h>
 #define __STDC_WANT_LIB_EXT1__ 1
-//#include <Arduino.h>
-#include <WiFiClientSecure.h>
+/*#include <Arduino.h>
 #include "esp_wpa2.h"
 #define EAP_ANONYMOUS_IDENTITY "anonymous@example.com" //anonymous identity
 #define EAP_IDENTITY "f.rossi11@studenti.unipi.it"                  //user identity
 #define EAP_PASSWORD "0577222714" //eduroam user password
-const char* ssid = "UniPisa";
+const char* ssid = "UniPisa";*/
 #include <WiFi.h>
 #include <PubSubClient.h>
 #define MQTT_KEEP_ALIVE 60 // int, in seconds
@@ -102,8 +101,14 @@ unsigned short RelayWaterControll = 25;
 unsigned short RelayValveControll = 26;
 
 int32_t conchannel;
-//const char* ssid = "Vodafoneebeb";
-//const char* password = "1lUB4jV1pdCCczvNdMyOvQQK";
+/*
+ *vodafone ruffolo credentials 
+ const char* ssid = "V493odafoneebeb";
+const char* password = "1lUB4jV1pdCCczvNdMyOvQQK";
+*/
+ const char* ssid = "Malaphone";
+const char* password = "g7u1xytgwyz";
+
 const char* mqtt_server = "mqtt.flespi.io";
 const int mqttPort = 1883;
 const char* mqttUser = "aBStKNDupRrLy0hguvUcJV44L09gtoOuPuLn7fHkUWViM1m6k46SQ0KpPJv8X7qA";
@@ -212,8 +217,8 @@ unsigned long prev_read=0;
 unsigned long prev_send=0;
 unsigned short bootCount = 0;
 
-WiFiClientSecure espClient;
-//WiFiClient espClient;
+//WiFiClientSecure espClient;
+WiFiClient espClient;
 PubSubClient client(espClient);
 
 //sleep controll
@@ -315,7 +320,7 @@ void setup_wifi() {
   Serial.println();
   Serial.print("Connecting to network: ");
   Serial.println(ssid);
-  WiFi.disconnect(true);  //disconnect form wifi to set new wifi connection
+  /*WiFi.disconnect(true);  //disconnect form wifi to set new wifi connection
   WiFi.mode(WIFI_STA); //init wifi mode
  esp_wifi_sta_wpa2_ent_set_identity((uint8_t *)EAP_ANONYMOUS_IDENTITY, strlen(EAP_ANONYMOUS_IDENTITY)); //provide identity
   esp_wifi_sta_wpa2_ent_set_username((uint8_t *)EAP_IDENTITY, strlen(EAP_IDENTITY)); //provide username
@@ -323,10 +328,13 @@ void setup_wifi() {
 esp_wpa2_config_t config = WPA2_CONFIG_INIT_DEFAULT();
 esp_wifi_sta_wpa2_ent_enable(&config);
 WiFi.begin(ssid);
+*/
+WiFi.begin(ssid,password,conchannel,bssid);
   while (WiFi.status() != WL_CONNECTED) {
     delay(500);
  //   Serial.print(".");
      Serial.println(WiFi.status());
+
   }
   /*
   0  WL_IDLE_STATUS  temporary status assigned when WiFi.begin() is called
@@ -473,16 +481,23 @@ void callback(char* topic,byte* payload,unsigned int length) {
   // char pchar[20];
   //array_to_string(p,length,pchar);
   //  strcpy(pchar,(char*)p);
+      Serial.println("line 482");
   char pchar[length + 1];
   // copy contents of payload to message
+        Serial.println(heap_caps_check_integrity_all(true));
   memcpy(pchar, payload, length);
   // add NULL terminator to message, making it a correct c string
   pchar[length + 1] = '\0';
   // use string functions with message
   // e.g
+        Serial.println("line 491");
   int messageLength = strlen(pchar);
-        free(payload);
+          Serial.println("line 493");
+                Serial.println(heap_caps_check_integrity_all(true));
+        //free(payload);
+                Serial.println("line 495");
 debugging(pchar);
+        Serial.println("line 497");
   //String myString = String((char *)byteArray);
   if (aux==1){
   debugging("Arduino think Received message on topic forcestart");
@@ -494,6 +509,7 @@ debugging(pchar);
   //   Serial.println("-- RAW payload --");
     //strncpy(pchar, char(*p), sizeof(pchar));
   //pchar[sizeof(pchar)-1]=NULL;
+     Serial.println("line 506");
   if (atoi(pchar)==1){
   Serial.println(F("payload"));
   Serial.println(atoi(pchar));
@@ -521,6 +537,7 @@ debugging("wrong string from forcestart payload");
   }
   }
   }
+    Serial.println("line 534");
   Serial.println(F("strncmp(topic, topic2, strlen(topic2))"));
   aux=(strncmp(topic, topic2, strlen(topic2))==0);
   tmp=tmp+aux;
@@ -1012,11 +1029,12 @@ void sensors_reading(){
   //client.publish("telemetry","temperatura interna");
   //client.publish("telemetry",tempint_str);
   debugging(tempint,"tempinttempint");
-  while (analogRead(humpin)==0){
+ /* while (analogRead(humpin)==0){
     debugging("waiting hum1 different from 0");
   //Serial.println(F("waiting hum1 different from 0"));          // debug value
   //client.publish("telemetry","waiting hum1 different from 0");
-  } 
+  }
+  */
   for (unsigned short hum1_mcount=0;hum1_mcount<hum1_measures;hum1_mcount++){ 
   sensorsdata.hum1 += analogRead(humpin);  // read the input pin
   }
@@ -1175,6 +1193,9 @@ The number of characters written so far is stored in the pointed location.
 */
 
 void loop() {
+      Serial.println("ESP.getFreeHeap()");
+    Serial.println(ESP.getFreeHeap());
+      for (unsigned long tmp=millis();millis()-tmp<=1*1000;){}
   if (millis()-LastVolt>2*60*1000){
   measure_voltages();
   }
