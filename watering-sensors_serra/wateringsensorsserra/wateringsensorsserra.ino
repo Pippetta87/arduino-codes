@@ -75,6 +75,12 @@ float Vref_lead_tune;
 #define EAP_PASSWORD "0577222714" //eduroam user password
 const char* ssid = "UniPisa";*/
 #include <WiFi.h>
+//OTA
+#include <WiFiClient.h>
+#include <WebServer.h>
+#include <ESPmDNS.h>
+#include <Update.h>
+//end OTA
 #include <PubSubClient.h>
 #define MQTT_KEEP_ALIVE 60 // int, in seconds
 #define MQTT_CLEAN_SESSION false // bool, resuse existing session
@@ -256,6 +262,98 @@ void hist_var(time_t *arr_time,time_t val_t,unsigned short *arr_hum1,unsigned sh
   load_head(arr_temp1,val_temp1);
 }
 
+//OTA
+const char* host = "esp32";
+
+WebServer server(6660);
+
+/*
+ * Login page
+ */
+
+const char* loginIndex =
+ "<form name='loginForm'>"
+    "<table width='20%' bgcolor='A09F9F' align='center'>"
+        "<tr>"
+            "<td colspan=2>"
+                "<center><font size=4><b>ESP32 Login Page</b></font></center>"
+                "<br>"
+            "</td>"
+            "<br>"
+            "<br>"
+        "</tr>"
+        "<tr>"
+             "<td>Username:</td>"
+             "<td><input type='text' size=25 name='userid'><br></td>"
+        "</tr>"
+        "<br>"
+        "<br>"
+        "<tr>"
+            "<td>Password:</td>"
+            "<td><input type='Password' size=25 name='pwd'><br></td>"
+            "<br>"
+            "<br>"
+        "</tr>"
+        "<tr>"
+            "<td><input type='submit' onclick='check(this.form)' value='Login'></td>"
+        "</tr>"
+    "</table>"
+"</form>"
+"<script>"
+    "function check(form)"
+    "{"
+    "if(form.userid.value=='admin' && form.pwd.value=='admin')"
+    "{"
+    "window.open('/serverIndex')"
+    "}"
+    "else"
+    "{"
+    " alert('Error Password or Username')/*displays error message*/"
+    "}"
+    "}"
+"</script>";
+
+/*
+ * Server Index Page
+ */
+
+const char* serverIndex =
+"<script src='https://ajax.googleapis.com/ajax/libs/jquery/3.2.1/jquery.min.js'></script>"
+"<form method='POST' action='#' enctype='multipart/form-data' id='upload_form'>"
+   "<input type='file' name='update'>"
+        "<input type='submit' value='Update'>"
+    "</form>"
+ "<div id='prg'>progress: 0%</div>"
+ "<script>"
+  "$('form').submit(function(e){"
+  "e.preventDefault();"
+  "var form = $('#upload_form')[0];"
+  "var data = new FormData(form);"
+  " $.ajax({"
+  "url: '/update',"
+  "type: 'POST',"
+  "data: data,"
+  "contentType: false,"
+  "processData:false,"
+  "xhr: function() {"
+  "var xhr = new window.XMLHttpRequest();"
+  "xhr.upload.addEventListener('progress', function(evt) {"
+  "if (evt.lengthComputable) {"
+  "var per = evt.loaded / evt.total;"
+  "$('#prg').html('progress: ' + Math.round(per*100) + '%');"
+  "}"
+  "}, false);"
+  "return xhr;"
+  "},"
+  "success:function(d, s) {"
+  "console.log('success!')"
+ "},"
+ "error: function (a, b, c) {"
+ "}"
+ "});"
+ "});"
+ "</script>";
+ //end OTA
 /*
 Method to print the reason by which ESP32
 has been awaken from sleep
@@ -773,69 +871,79 @@ void setup() {
   Serial.println(F("time setup"));
   client.setServer(mqtt_server, 1883);
   client.setCallback(callback);
-  Serial.println(F("MQTT init"));
-  while(mktime(&epochstart_tm)<recent_epoch){
-  time(&now_tt);
-  localtime_r(&now_tt,&epochstart_tm);
-  Serial.println(F("setting epochstart"));
-  //delay(1000);
-  for (unsigned long tmp=millis();millis()-tmp<=1*1000;){}
+        Serial.println("MQTT init");
+        while(mktime(&epochstart_tm)<recent_epoch){
+          time(&now_tt);
+localtime_r(&now_tt,&epochstart_tm);
+       Serial.println("setting epochstart");
+       delay(1000);
+          }
+            client.publish("telemetry","epochstart");
+    epochstart_str = (String) asctime(&epochstart_tm); //converting ftemp (the float variable above) to a string
+    epochstart_str[epochstart_str.length()] = '\0';
+     epochstart_str.toCharArray(epochstartchar, epochstart_str.length()); //packaging up the data to publish to mqtt whoa...
+//    char* aux=asctime(epochstart_tm);
+         client.publish("telemetry", epochstartchar);
+Serial.println("Dallas Temperature IC Control Library Demo");
+ // Start up the library
+ sensors.begin();
+     Serial.println("Settin RelayWaterControl1 to output");
+ pinMode(RelayWaterControll, OUTPUT);
+ digitalWrite(RelayWaterControll, HIGH);
+      Serial.println("Settin RelayValveControl1 to output");
+ pinMode(RelayValveControll, OUTPUT);
+ digitalWrite(RelayValveControll, HIGH);
+ //           digitalWrite(RelayValveControll, LOW);
+
+      adcAttachPin(humpin);
+//OTA
+Serial.print("IP address: ");
+  Serial.println(WiFi.localIP());
+
+  /*use mdns for host name resolution*/
+  if (!MDNS.begin(host)) { //http://esp32.local
+    Serial.println("Error setting up MDNS responder!");
+    while (1) {
+      delay(1000);
+    }
   }
-  client.publish("telemetry","epochstart");
-  epochstartchar=str2chara("%s",asctime(&epochstart_tm));
-  //epochstart_str = (String) asctime(&epochstart_tm); //converting ftemp (the float variable above) to a string
-  //epochstart_str[epochstart_str.length()] = '\0';
-  //epochstart_str.toCharArray(epochstartchar, epochstart_str.length()); //packaging up the data to publish to mqtt whoa...
-  //    char* aux=asctime(epochstart_tm);
-  debugging(epochstartchar,"epochstartchar");
-  //client.publish("telemetry", epochstartchar);
-  //Serial.println(F("Dallas Temperature IC Control Library Demo"));
-  debugging("Dallas Temperature IC Control Library Demo");
-  // Start up the library
-  sensors.begin();
-  Serial.println(F("Settin RelayWaterControl1 to output"));
-  pinMode(RelayWaterControll, OUTPUT);
-  digitalWrite(RelayWaterControll, HIGH);
-  Serial.println(F("Settin RelayValveControl1 to output"));
-  pinMode(RelayValveControll, OUTPUT);
-  digitalWrite(RelayValveControll, HIGH);
-  //           digitalWrite(RelayValveControll, LOW);
-  preferences.begin("remotedata", false);
-  // Remove all preferences under the opened namespace
-  //preferences.clear();
-  // Or remove the counter key only
-  //preferences.remove("counter");
-  //testing valve connection
-  // Note: Key name is limited to 15 chars.
-  /*
-  typedef struct {
-  time_t time_hist_disk;
-  unsigned short hum1_hist_disk;
-  short temp1_hist_disk;
-  } hist_var_my;
-  */
-  remotedata.forcestart = preferences.getBool("forcestart", false);
-  EMERGENCY_STOP = preferences.getBool("EMERGENCY_STOP", false);
-  ref_voltage_18650 =preferences.getFloat("ref_voltage_18650", 1.042);
-  ref_voltage_lead =preferences.getFloat("ref_voltage_lead", 3.388);
-  remotedata.external_pump=preferences.getBool("external_pump", false);
-  remotedata.pumptime = preferences.getULong("pumptime", 270000);
-  remotedata.humidityth = preferences.getUShort("humidityth", 1600);
-  //sensorsdata.watertick = preferences.getULong("watertick", 0);
-  String tmp=preferences.getString("lastactive", "never");
-  //int tmp_l = tmp.length();
-  strcpy(sensorsdata.lastactive, tmp.c_str());
-  preferences.getBytes("time_hist", &time_hist, sizeof(time_hist));
-  preferences.getBytes("hum1_hist", &hum1_hist, sizeof(hum1_hist));
-  preferences.getBytes("temp1_hist", &temp1_hist, sizeof(temp1_hist));
-  preferences.end();
-  size_t sizeof_time_hist=sizeof(time_hist);
-  debugging(sizeof_time_hist,"sizeof_time_hist");
-    size_t sizeof_hum1_hist=sizeof(hum1_hist);
-  debugging(sizeof_hum1_hist,"sizeof_hum1_hist");
-      size_t sizeof_temp1_hist=sizeof(temp1_hist);
-  debugging(sizeof_temp1_hist,"sizeof_temp1_hist");
-  adcAttachPin(humpin);//Attach a pin to ADC (also clears any other analog mode that could be on). Returns TRUE or FALSE result.
+  Serial.println("mDNS responder started");
+  /*return index page which is stored in serverIndex */
+  server.on("/", HTTP_GET, []() {
+    server.sendHeader("Connection", "close");
+    server.send(200, "text/html", loginIndex);
+  });
+  server.on("/serverIndex", HTTP_GET, []() {
+    server.sendHeader("Connection", "close");
+    server.send(200, "text/html", serverIndex);
+  });
+  /*handling uploading firmware file */
+  server.on("/update", HTTP_POST, []() {
+    server.sendHeader("Connection", "close");
+    server.send(200, "text/plain", (Update.hasError()) ? "FAIL" : "OK");
+    ESP.restart();
+  }, []() {
+    HTTPUpload& upload = server.upload();
+    if (upload.status == UPLOAD_FILE_START) {
+      Serial.printf("Update: %s\n", upload.filename.c_str());
+      if (!Update.begin(UPDATE_SIZE_UNKNOWN)) { //start with max available size
+        Update.printError(Serial);
+      }
+    } else if (upload.status == UPLOAD_FILE_WRITE) {
+      /* flashing firmware to ESP*/
+      if (Update.write(upload.buf, upload.currentSize) != upload.currentSize) {
+        Update.printError(Serial);
+      }
+    } else if (upload.status == UPLOAD_FILE_END) {
+      if (Update.end(true)) { //true to set the size to the current progress
+        Serial.printf("Update Success: %u\nRebooting...\n", upload.totalSize);
+      } else {
+        Update.printError(Serial);
+      }
+    }
+  });
+  server.begin();
+  //end OTA
   sensors_reading();
 }
 
@@ -1195,8 +1303,13 @@ The number of characters written so far is stored in the pointed location.
 void loop() {
       Serial.println("ESP.getFreeHeap()");
     Serial.println(ESP.getFreeHeap());
-      for (unsigned long tmp=millis();millis()-tmp<=1*1000;){}
-  if (millis()-LastVolt>2*60*1000){
+    Serial.println("WiFi.macAddress()");
+  Serial.println(WiFi.macAddress());
+//OTA
+  server.handleClient();
+//end OTA
+
+if (millis()-LastVolt>2*60*1000){
   measure_voltages();
   }
   if (startcounter>=5&&!remotedata.forcestart){
