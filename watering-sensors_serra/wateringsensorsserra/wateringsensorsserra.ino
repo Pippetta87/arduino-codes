@@ -230,7 +230,7 @@ PubSubClient client(espClient);
 //sleep controll
 unsigned long sleep_timer=0;
 #define uS_TO_S_FACTOR 1000000  /* Conversion factor for micro seconds to seconds */
-#define TIME_TO_SLEEP  30*60       /* Time ESP32 will go to sleep (in seconds) */
+#define TIME_TO_SLEEP  1*60       /* Time ESP32 will go to sleep (in seconds) *///changed in testing
 
 template <typename T> void load_head(T *arr,T val){
   size_t size = sizeof(arr)/sizeof(arr[0]);
@@ -465,14 +465,14 @@ void array_to_string(byte array[], unsigned int len, char buffer[]){
   char *value;
 }*/
 
-void debugging(char *what,char name[20]){
+void debugging(char *what,const char name[20]){
 
             Serial.println(F(name));
     Serial.println(what);
       client.publish("telemetry",name);
       client.publish("telemetry",what);
 }
-void debugging(int what,char name[20]){
+void debugging(int what,const char name[20]){
 const char *format="%d";
  char *mychar;
  mychar=i2chara(format,what);
@@ -481,7 +481,7 @@ const char *format="%d";
       client.publish("telemetry",name);
       client.publish("telemetry",mychar);
 }
-void debugging(unsigned short what,char name[20]){
+void debugging(unsigned short what,const char name[20]){
 const char *format="%hu";
  char *mychar;
  mychar=us2chara(format,what);
@@ -490,7 +490,7 @@ const char *format="%hu";
       client.publish("telemetry",name);
       client.publish("telemetry",mychar);
 }
-void debugging(float what,char name[20]){
+void debugging(float what,const char name[20]){
 const char *format="%6.3f";
  char *mychar;
  mychar=f2chara(format,what);
@@ -499,7 +499,7 @@ const char *format="%6.3f";
       client.publish("telemetry",name);
       client.publish("telemetry",mychar);
 }
-void debugging(unsigned long what,char name[20]){
+void debugging(unsigned long what,const char name[20]){
 const char *format="%lu";
  char *mychar;
  mychar=us2chara(format,what);
@@ -508,7 +508,7 @@ const char *format="%lu";
       client.publish("telemetry",name);
       client.publish("telemetry",mychar);
 }
-void debugging(short what,char name[20]){
+void debugging(short what,const char name[20]){
 const char *format="%hi";
  char *mychar;
  mychar=s2chara(format,what);
@@ -517,7 +517,7 @@ const char *format="%hi";
       client.publish("telemetry",name);
       client.publish("telemetry",mychar);
 }
-void debugging(bool what,char name[20]){
+void debugging(bool what,const char name[20]){
 const char *format="%s";
  char *mychar;
 const char *vOut = what ? "true" : "false";
@@ -527,7 +527,7 @@ const char *vOut = what ? "true" : "false";
       client.publish("telemetry",name);
       client.publish("telemetry",mychar);
 }
-void debugging(size_t what,char name[20]){
+void debugging(size_t what,const char name[20]){
 const char *format="%hu";
  char *mychar;
  mychar=ul2chara(format,(unsigned long)what);
@@ -878,12 +878,19 @@ localtime_r(&now_tt,&epochstart_tm);
        Serial.println("setting epochstart");
        delay(1000);
           }
-            client.publish("telemetry","epochstart");
-    epochstart_str = (String) asctime(&epochstart_tm); //converting ftemp (the float variable above) to a string
-    epochstart_str[epochstart_str.length()] = '\0';
-     epochstart_str.toCharArray(epochstartchar, epochstart_str.length()); //packaging up the data to publish to mqtt whoa...
+//   client.publish("telemetry","epochstart");
+//   epochstart_str = (String) asctime(&epochstart_tm); //converting ftemp (the float variable above) to a string
+//   epochstart_str[epochstart_str.length()] = '\0';
+//   epochstart_str.toCharArray(epochstartchar, epochstart_str.length()); //packaging up the data to publish to mqtt whoa...
 //    char* aux=asctime(epochstart_tm);
-         client.publish("telemetry", epochstartchar);
+//client.publish("telemetry","epochstart");
+  epochstartchar=str2chara("%s",asctime(&epochstart_tm));
+  //epochstart_str = (String) asctime(&epochstart_tm); //converting ftemp (the float variable above) to a string
+  //epochstart_str[epochstart_str.length()] = '\0';
+  //epochstart_str.toCharArray(epochstartchar, epochstart_str.length()); //packaging up the data to publish to mqtt whoa...
+  //    char* aux=asctime(epochstart_tm);
+  debugging(epochstartchar,"epochstartchar");
+//  client.publish("telemetry", epochstartchar);
 Serial.println("Dallas Temperature IC Control Library Demo");
  // Start up the library
  sensors.begin();
@@ -1299,7 +1306,7 @@ The corresponding argument must be a pointer to a signed int.
 The number of characters written so far is stored in the pointed location.  
 % A % followed by another % character will write a single % to the stream.  %
 */
-
+ 
 void loop() {
       Serial.println("ESP.getFreeHeap()");
     Serial.println(ESP.getFreeHeap());
