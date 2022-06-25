@@ -107,17 +107,17 @@ unsigned short RelayWaterControll = 25;
 unsigned short RelayValveControll = 26;
 
 int32_t conchannel;
-/*
- *vodafone ruffolo credentials 
- const char* ssid = "V493odafoneebeb";
+
+//vodafone ruffolo credentials 
+ const char* ssid = "Vodafoneebeb";
 const char* password = "1lUB4jV1pdCCczvNdMyOvQQK";
-*/
- const char* ssid = "Malaphone";
-const char* password = "g7u1xytgwyz";
+
+//const char* ssid = "Malaphone";
+//const char* password = "g7u1xytgwyz";
 
 const char* mqtt_server = "mqtt.flespi.io";
 const int mqttPort = 1883;
-const char* mqttUser = "aBStKNDupRrLy0hguvUcJV44L09gtoOuPuLn7fHkUWViM1m6k46SQ0KpPJv8X7qA";
+const char* mqttUser = "U37nUFwkAeyIUaYYU5QecVF6dfB1rjwbcroUXJ4nNqTvrHj9CZdDJHzMM0D39X2a";
 const char* mqttPassword = "";
 const char* clientId = "testing.tenda.mtserra.pisa";
 String bssidstr;
