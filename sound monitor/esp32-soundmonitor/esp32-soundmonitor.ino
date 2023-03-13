@@ -14,7 +14,7 @@ void setup() {
 // the loop routine runs over and over again forever:
 void loop() {
   // read the input on analog pin 0:
-  unsigned short sensorValue = analogRead(32);
+  unsigned short sensorValue = analogRead(15);
   // print out the value you read:
   Serial.println(sensorValue);
   }

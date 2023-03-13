@@ -12,9 +12,12 @@ sun ADC>100/4095
 00:08:19.394 -> This chip has 2 cores
 00:08:19.394 -> Chip ID: 2292260
 */
+#include "FS.h"
+#include "SD.h"
+#include "SPI.h"
 #include <stdio.h>
 //#define getName(var)  #var
-# define getName(var, str)  sprintf(str, "%s", #var)
+//# define getName(var, str)  sprintf(str, "%s", #var)
 
 //#include <Preferences.h>
 //Preferences preferences;
@@ -51,8 +54,8 @@ attenuazione di  11dB che permette di avere una tensione di fondo scala pari a 3
 
 //#include <math.h>
 //#include <stdio.h>
-#include <driver/adc.h>
-#define __STDC_WANT_LIB_EXT1__ 1
+//#include <driver/adc.h>
+//#define __STDC_WANT_LIB_EXT1__ 1
 /*#include <Arduino.h>
 #include "esp_wpa2.h"
 #define EAP_ANONYMOUS_IDENTITY "anonymous@example.com" //anonymous identity
@@ -61,10 +64,10 @@ attenuazione di  11dB che permette di avere una tensione di fondo scala pari a 3
 const char* ssid = "UniPisa";*/
 #include <WiFi.h>
 //OTA
-#include <WiFiClient.h>
-#include <WebServer.h>
-#include <ESPmDNS.h>
-#include <Update.h>
+//#include <WiFiClient.h>
+//#include <WebServer.h>
+//#include <ESPmDNS.h>
+//#include <Update.h>
 //end OTA
 #include <PubSubClient.h>
 #define MQTT_KEEP_ALIVE 60 // int, in seconds
@@ -72,15 +75,19 @@ const char* ssid = "UniPisa";*/
 #define MQTT_TIMEOUT 15000 // int, in miliseconds
 #include <time.h>                       // time() ctime()
 #include <sys/time.h>                   // struct timeval
-
+//solar sensor variables
+    int  analogValue = 0;
+    int previous_reading;
+    int now_reading=0;
+short mqtt_rc;
 
 //vodafone ruffolo credentials 
-//const char* ssid = "Vodafoneebeb";
-//const char* password = "1lUB4jV1pdCCczvNdMyOvQQK";
+const char* ssid = "Vodafoneebeb";
+const char* password = "1lUB4jV1pdCCczvNdMyOvQQK";
 
 //Tim Carpineto credentials 
- const char* ssid = "ruterino";
-const char* password = "un cavallo muto";
+//const char* ssid = "ruterino";
+//const char* password = "un cavallo muto";
 
 //Malaphone
 //const char* ssid = "Malaphone";
@@ -107,12 +114,15 @@ uint8_t prevRssi;
 //Get a time structure
 // struct tm *timeinfo;// pointer to a tm struct;
 // struct tm *ptm = gmtime ((time_t *)&epochTime);
-time_t now_tt,epocheau_tt;
-struct tm epochstart_tm;               // this is the epoch
-struct tm tm;                              // the structure tm holds time information in a more convient way
+time_t now_tt;
+struct tm epochstart_tm;
+struct tm tm;
+
+ char *insolation_char;
+
+char const *stringformat;
+// the structure tm holds time information in a more convient way
 //struct tm timeinfo;//,tmepocheeau;
-struct tm tmepocheeau;
-unsigned long epocheau;//internal_tick;
 const char* ntpServer = "europe.pool.ntp.org";
 const long  gmtOffset_sec = +3600;   //Replace with your GMT offset (seconds)
 const int   daylightOffset_sec = 0;  //Replace with your daylight offset (seconds)
@@ -121,26 +131,9 @@ const int   daylightOffset_sec = 0;  //Replace with your daylight offset (second
 // Global variables for Time
 // time_t rawtime;// global holding current datetime as Epoch
 
-char const *stringformat;
-//String  hum_str,temp_str,watertick_str, forcestart_str, pumptime_str, humidityth_str,epochstart_str,epocheau_str, measured_18650_str, measured_lead_str;
-//char temp1char[6];
-//char hum1char[6];
-//char watertickchar[10];
-char *watertickchar;
-//char forcestartchar[6];
-//char pumptimechar[20],humiditythchar[6],measured_18650char[5],measured_leadchar[6];
-char *pumptimechar,*humiditythchar,*measured_18650char,*measured_leadchar,*temp1char,*hum1char, *epocheauchar;
-//char epochstartchar[30];
-char *epochstartchar;
-//char epocheauchar[30];
+char time_nowreading[25];
 
 unsigned short Hour;
-unsigned short humM,humm;
-
-//Variable for hum1, temp1, time history
-time_t *time_hist;
-short *temp1_hist;
-unsigned short *hum1_hist;
 
 //string def for topic identification
 const char* topic_solarvoltage="solarvoltage";
@@ -148,7 +141,7 @@ const char* topic_solarvoltage="solarvoltage";
 //WiFiClientSecure espClient;
 WiFiClient espClient;
 PubSubClient client(espClient);
-
+/*
 template <typename T> void load_head(T *arr,T val){
   size_t size = sizeof(arr)/sizeof(arr[0]);
   for (int i=0;i<size;i++){
@@ -178,16 +171,15 @@ void hist_var(time_t *arr_time,time_t val_t,unsigned short *arr_hum1,unsigned sh
   load_head(arr_hum1,val_hum1);
   load_head(arr_temp1,val_temp1);
 }
-
+*/
 //OTA
-const char* host = "esp32";
-
-WebServer server(6660);
+//const char* host = "esp32";
+//WebServer server(6660);
 
 /*
  * Login page
  */
-
+/*
 const char* loginIndex =
  "<form name='loginForm'>"
     "<table width='20%' bgcolor='A09F9F' align='center'>"
@@ -225,15 +217,17 @@ const char* loginIndex =
     "}"
     "else"
     "{"
-    " alert('Error Password or Username')/*displays error message*/"
-    "}"
+    " alert('Error Password or Username')"
+    /*displays error message*/
+  /*  "}"
     "}"
 "</script>";
+*/
 
 /*
  * Server Index Page
  */
-
+ /*
 const char* serverIndex =
 "<script src='https://ajax.googleapis.com/ajax/libs/jquery/3.2.1/jquery.min.js'></script>"
 "<form method='POST' action='#' enctype='multipart/form-data' id='upload_form'>"
@@ -271,6 +265,7 @@ const char* serverIndex =
  "});"
  "</script>";
  //end OTA
+*/
 /*
 Method to print the reason by which ESP32
 has been awaken from sleep
@@ -439,9 +434,168 @@ void printLocalTime(){
   Serial.print(F("] "));
   }
 
+  //MIcro SD fun ction definition
+  void listDir(fs::FS &fs, const char * dirname, uint8_t levels){
+  Serial.printf("Listing directory: %s\n", dirname);
+
+  File root = fs.open(dirname);
+  if(!root){
+    Serial.println("Failed to open directory");
+    return;
+  }
+  if(!root.isDirectory()){
+    Serial.println("Not a directory");
+    return;
+  }
+
+  File file = root.openNextFile();
+  while(file){
+    if(file.isDirectory()){
+      Serial.print("  DIR : ");
+      Serial.println(file.name());
+      if(levels){
+        listDir(fs, file.name(), levels -1);
+      }
+    } else {
+      Serial.print("  FILE: ");
+      Serial.print(file.name());
+      Serial.print("  SIZE: ");
+      Serial.println(file.size());
+    }
+    file = root.openNextFile();
+  }
+}
+
+void createDir(fs::FS &fs, const char * path){
+  Serial.printf("Creating Dir: %s\n", path);
+  if(fs.mkdir(path)){
+    Serial.println("Dir created");
+  } else {
+    Serial.println("mkdir failed");
+  }
+}
+
+void removeDir(fs::FS &fs, const char * path){
+  Serial.printf("Removing Dir: %s\n", path);
+  if(fs.rmdir(path)){
+    Serial.println("Dir removed");
+  } else {
+    Serial.println("rmdir failed");
+  }
+}
+
+void readFile(fs::FS &fs, const char * path){
+  Serial.printf("Reading file: %s\n", path);
+
+  File file = fs.open(path);
+  if(!file){
+    Serial.println("Failed to open file for reading");
+    return;
+  }
+
+  Serial.print("Read from file: ");
+  while(file.available()){
+    Serial.write(file.read());
+  }
+  file.close();
+}
+
+void writeFile(fs::FS &fs, const char * path, const char * message){
+  Serial.printf("Writing file: %s\n", path);
+
+  File file = fs.open(path, FILE_WRITE);
+  if(!file){
+    Serial.println("Failed to open file for writing");
+    return;
+  }
+  if(file.print(message)){
+    Serial.println("File written");
+  } else {
+    Serial.println("Write failed");
+  }
+  file.close();
+}
+
+void appendFile(fs::FS &fs, const char * path, const char * message){
+  Serial.printf("Appending to file: %s\n", path);
+
+  File file = fs.open(path, FILE_APPEND);
+  if(!file){
+    Serial.println("Failed to open file for appending");
+    return;
+  }
+  if(file.print(message)){
+      Serial.println("Message appended");
+  } else {
+    Serial.println("Append failed");
+  }
+  file.close();
+}
+
+void renameFile(fs::FS &fs, const char * path1, const char * path2){
+  Serial.printf("Renaming file %s to %s\n", path1, path2);
+  if (fs.rename(path1, path2)) {
+    Serial.println("File renamed");
+  } else {
+    Serial.println("Rename failed");
+  }
+}
+
+void deleteFile(fs::FS &fs, const char * path){
+  Serial.printf("Deleting file: %s\n", path);
+  if(fs.remove(path)){
+    Serial.println("File deleted");
+  } else {
+    Serial.println("Delete failed");
+  }
+}
+
+void testFileIO(fs::FS &fs, const char * path){
+  File file = fs.open(path);
+  static uint8_t buf[512];
+  size_t len = 0;
+  uint32_t start = millis();
+  uint32_t end = start;
+  if(file){
+    len = file.size();
+    size_t flen = len;
+    start = millis();
+    while(len){
+      size_t toRead = len;
+      if(toRead > 512){
+        toRead = 512;
+      }
+      file.read(buf, toRead);
+      len -= toRead;
+    }
+    end = millis() - start;
+    Serial.printf("%u bytes read for %u ms\n", flen, end);
+    file.close();
+  } else {
+    Serial.println("Failed to open file for reading");
+  }
+
+
+  file = fs.open(path, FILE_WRITE);
+  if(!file){
+    Serial.println("Failed to open file for writing");
+    return;
+  }
+
+  size_t i;
+  start = millis();
+  for(i=0; i<2048; i++){
+    file.write(buf, 512);
+  }
+  end = millis() - start;
+  Serial.printf("%u bytes written for %u ms\n", 2048 * 512, end);
+  file.close();
+}
+
+// end MicroSD function sefinition
+
 void setup() {
-    // reads the input on analog pin A0 (value between 0 and 1023)
-  int analogValue = analogRead(4);
+  
   Serial.begin(115200);
   while (!Serial){}
   Serial.println(F("serial init"));
@@ -449,7 +603,52 @@ void setup() {
   // has to use a namespace name to prevent key name collisions. We will open storage in
   // RW-mode (second parameter has to be false).
   // Note: Namespace name is limited to 15 chars.
- 
+
+previous_reading=0;
+now_reading=0;
+  // reads the input on analog pin A0 (value between 0 and 4095)
+  
+ //SD card init
+   if(!SD.begin(5)){
+    Serial.println("Card Mount Failed");
+    return;
+  }
+  uint8_t cardType = SD.cardType();
+
+  if(cardType == CARD_NONE){
+    Serial.println("No SD card attached");
+    return;
+  }
+
+  Serial.print("SD Card Type: ");
+  if(cardType == CARD_MMC){
+    Serial.println("MMC");
+  } else if(cardType == CARD_SD){
+    Serial.println("SDSC");
+  } else if(cardType == CARD_SDHC){
+    Serial.println("SDHC");
+  } else {
+    Serial.println("UNKNOWN");
+  }
+
+  uint64_t cardSize = SD.cardSize() / (1024 * 1024);
+  Serial.printf("SD Card Size: %lluMB\n", cardSize);
+
+  listDir(SD, "/", 0);
+  //createDir(SD, "/voltageanalog");
+  //listDir(SD, "/", 0);
+  //removeDir(SD, "/mydir");
+  //listDir(SD, "/", 2);
+  writeFile(SD, "/voltageanalog.txt", "Init file for voltage reading ");
+ // appendFile(SD, "/hello.txt", "World!\n");
+  //readFile(SD, "/hello.txt");
+  //deleteFile(SD, "/foo.txt");
+  //renameFile(SD, "/hello.txt", "/foo.txt");
+  //readFile(SD, "/foo.txt");
+  //testFileIO(SD, "/test.txt");
+  Serial.printf("Total space: %lluMB\n", SD.totalBytes() / (1024 * 1024));
+  Serial.printf("Used space: %lluMB\n", SD.usedBytes() / (1024 * 1024));
+  
   /*
   First we configure the wake up source
   We set our ESP32 to wake up every 5 seconds
@@ -463,14 +662,15 @@ void setup() {
   client.setServer(mqtt_server, 1883);
   client.setCallback(callback);
         Serial.println("MQTT init");
-        while(mktime(&epochstart_tm)<recent_epoch){
+        /*while(mktime(&epochstart_tm)<recent_epoch){
           time(&now_tt);
 localtime_r(&now_tt,&epochstart_tm);
        Serial.println("setting epochstart");
        delay(1000);
           }
-
+*/
   /*use mdns for host name resolution*/
+  /*
   if (!MDNS.begin(host)) { //http://esp32.local
     Serial.println("Error setting up MDNS responder!");
     while (1) {
@@ -478,7 +678,9 @@ localtime_r(&now_tt,&epochstart_tm);
     }
   }
   Serial.println("mDNS responder started");
+  */
   /*return index page which is stored in serverIndex */
+  /*
   server.on("/", HTTP_GET, []() {
     server.sendHeader("Connection", "close");
     server.send(200, "text/html", loginIndex);
@@ -487,7 +689,9 @@ localtime_r(&now_tt,&epochstart_tm);
     server.sendHeader("Connection", "close");
     server.send(200, "text/html", serverIndex);
   });
+  */
   /*handling uploading firmware file */
+  /*
   server.on("/update", HTTP_POST, []() {
     server.sendHeader("Connection", "close");
     server.send(200, "text/plain", (Update.hasError()) ? "FAIL" : "OK");
@@ -500,7 +704,9 @@ localtime_r(&now_tt,&epochstart_tm);
         Update.printError(Serial);
       }
     } else if (upload.status == UPLOAD_FILE_WRITE) {
+    */
       /* flashing firmware to ESP*/
+      /*
       if (Update.write(upload.buf, upload.currentSize) != upload.currentSize) {
         Update.printError(Serial);
       }
@@ -514,8 +720,8 @@ localtime_r(&now_tt,&epochstart_tm);
   });
   server.begin();
   //end OTA
-  
-}
+  */
+}//end setup
 
 // Reverses a string 'str' of length 'len'
 void reverse(char* str, int len){
@@ -653,93 +859,43 @@ The number of characters written so far is stored in the pointed location.
 */
  
 void loop() {
-    analogValue = analogRead(4);
-
+  //OTA
+  //server.handleClient();
+  //delay(1);
+//end OTA
+printLocalTime();
+//strncpy(time_nowreading, asctime(&tm), 25);
+previous_reading=now_reading;
+analogValue = analogRead(4);
+/*
+if (analogValue>100){
+   now_reading=1;
+}
+else{
+    now_reading=0;
+}
+itoa(now_reading,insolation_char,10);
+// insolation_char='0'+now_reading;
+if ((previous_reading==0&&now_reading==1)||(previous_reading==1&&now_reading==0)){
+  appendFile(SD, "/voltageanalog.txt", time_nowreading);
+  appendFile(SD, "/voltageanalog.txt", insolation_char);
+}
       Serial.println("ESP.getFreeHeap()");
     Serial.println(ESP.getFreeHeap());
     Serial.println("WiFi.macAddress()");
   Serial.println(WiFi.macAddress());
-//OTA
-  server.handleClient();
-//end OTA
 
-  printLocalTime();
-  short mqtt_rc=client.state();
+  //printLocalTime();
+  /*short mqtt_rc=client.state();
   Serial.println(F("MQTT client state:"));
   Serial.println(mqtt_rc);
   if (!client.connected()) {
   Serial.println(F("MQTT NOT connected!!"));
   reconnect();
   }
+  
   client.loop();
-  /*
-  const char topic[]  = "hum1";//real unique topic
-  const char topic2[]  = "temp1";
-  const char topic3[]  = "lastactive";
-  */
-
-  /*
-  Serial.println(F("mktime(&epochstart_tm)"));
-  Serial.println(mktime(&epochstart_tm));
-  Serial.println(F("mktime(&epochstart_tm)+sensorsdata.watertick/1000"));
-  Serial.println(mktime(&epochstart_tm)+sensorsdata.watertick/1000);
-  Serial.println(F("Convertin epocheau to date time"));
-  Serial.print(tm.tm_year+1900);
-  Serial.print(F(" "));
-  Serial.print(tm.tm_mon+1);
-  Serial.print(F(" "));
-  Serial.print(tm.tm_mday);
-  Serial.print(F(" "));
-  Serial.print(tm.tm_hour);
-  Serial.print(F(":"));
-  Serial.print(tm.tm_min);
-  Serial.print(F(":"));
-  Serial.print(tm.tm_sec);
-  Serial.println(F(""));
-  */
-  //epocheau_str=(String) asctime(&tmepocheeau);
-  //      epocheau_str=(String) sensorsdata.lastactive;
-  // epocheau_str[epocheau_str.length()] = '\0';// Make payload a string by NULL terminating it.
-  //  epocheau_str.toCharArray(epocheauchar, epocheau_str.length() + 1);//packaging up the data to publish to mqtt whoa...  
-  //stringformat="%s";
-  //epocheauchar=str2chara(stringformat,sensorsdata.lastactive);
-  //client.publish("telemetry","epocheauchar date/time");
-  //client.publish("telemetry",epocheauchar);
-  // watertick_str=(String) sensorsdata.watertick;
-  // watertick_str[watertick_str.length()] = '\0';// Make payload a string by NULL terminating it.
-  //watertick_str.toCharArray(watertickchar, watertick_str.length() + 1);//packaging up the data to publish to mqtt whoa...  
-  //stringformat="%lu";
-  //client.publish("telemetry","watertickchar");
-  //client.publish("telemetry",watertickchar);
-  //client.publish("lastactive",epocheauchar);
-
-/*
-  preferences.begin("remotedata", false);
-  // Remove all preferences under the opened namespace
-  //preferences.clear();
-  struct tm wakeTM = *localtime(&now_tt);
-  //char wakechar[40];
-  //struct tm startTM;
-  //    time_t start;
-  time_t wake_tt = mktime(&wakeTM);
-  //snprintf ( wakechar, 40, "Next wake:\n %s",ctime(&wake_tt));
-  // Note: Key name is limited to 15 chars.
-  preferences.putBool("forcestart", remotedata.forcestart);
-  preferences.putBool("EMERGENCY_STOP", EMERGENCY_STOP);
-  preferences.putULong("pumptime", remotedata.pumptime);
-  preferences.putUShort("humidityth", remotedata.humidityth);
-  ref_voltage_18650 =preferences.putFloat("ref_voltage_18650", 1.042);
-  ref_voltage_lead =preferences.putFloat("ref_voltage_lead", 3.388);
-  remotedata.external_pump=preferences.getBool("external_pump", false);
-  //preferences.putULong("watertick", sensorsdata.watertick);
-  preferences.putString("lastactive", sensorsdata.lastactive);
-  preferences.putBytes("time_hist", (byte*)(time_hist), sizeof(time_hist));
-  preferences.putBytes("hum1_hist", (byte*)(hum1_hist), sizeof(hum1_hist));
-  preferences.putBytes("temp1_hist", (byte*)(temp1_hist), sizeof(temp1_hist));
-  // Close the Preferences
-  preferences.end();
 */
-
   Serial.println("Analog reading: ");
   Serial.println(analogValue);   // the raw analog reading
   
