@@ -82,12 +82,12 @@ const char* ssid = "UniPisa";*/
 short mqtt_rc;
 
 //vodafone ruffolo credentials 
-const char* ssid = "Vodafoneebeb";
-const char* password = "1lUB4jV1pdCCczvNdMyOvQQK";
+//const char* ssid = "Vodafoneebeb";
+//const char* password = "1lUB4jV1pdCCczvNdMyOvQQK";
 
 //Tim Carpineto credentials 
-//const char* ssid = "ruterino";
-//const char* password = "un cavallo muto";
+const char* ssid = "ruterino";
+const char* password = "un cavallo muto";
 
 //Malaphone
 //const char* ssid = "Malaphone";
@@ -117,10 +117,11 @@ uint8_t prevRssi;
 time_t now_tt;
 struct tm epochstart_tm;
 struct tm tm;
-
- char *insolation_char;
-
+char *insolation_char;
+char *time_chr;
 char const *stringformat;
+char *buf;
+size_t sz;
 // the structure tm holds time information in a more convient way
 //struct tm timeinfo;//,tmepocheeau;
 const char* ntpServer = "europe.pool.ntp.org";
@@ -412,14 +413,13 @@ void setup_time () {
 }
 
 void printLocalTime(){
-  char *time_chr;
+      Serial.println(F("two"));
   time(&now_tt);
+      Serial.println(F("three"));
   localtime_r(&now_tt,&tm);
+      Serial.println(F("four"));
   Serial.printf("The current date/time is: %s", asctime(&tm));
-  stringformat="%s";
-  time_chr=str2chara(stringformat,asctime(&tm));
-  Hour=tm.tm_hour;
-  //  Serial.println(tm.tm_min);
+      Serial.println(F("five"));
   }
 
   void callback(char* topic,byte* payload,unsigned int length) {
@@ -820,20 +820,33 @@ char* s2chara(const char *A, short B){
 }
 //string to char array
 char* str2chara(const char* A, char* B){
-  char *buf;
-  size_t sz;
+ // char *buf;
+ // size_t sz;
   sz = snprintf(NULL, 0, A, B);
   buf = (char *)malloc(sz + 1); /* make sure you check for != NULL in real code */
-  snprintf(buf, sz+1, A, B);
+  if (buf != NULL) {  
+  // do some thing usefull
+    snprintf(buf, sz+1, A, B);
   return buf;
+} else {  
+ // no memory. safely return/throw ...  
+return "";
+}
+
 }
 char* str2chara(const char* A,const char* B){
-  char *buf;
-  size_t sz;
+ // char *buf;
+ // size_t sz;
   sz = snprintf(NULL, 0, A, B);
   buf = (char *)malloc(sz + 1); /* make sure you check for != NULL in real code */
-  snprintf(buf, sz+1, A, B);
-  return buf;
+  if (buf != NULL) {  
+  // do some thing usefull
+    snprintf(buf, sz+1, A, B);
+  return buf; 
+} else {  
+ // no memory. safely return/throw ...
+ return "";
+}  
 }
 /*
 d or i  Signed decimal integer  392
@@ -863,7 +876,17 @@ void loop() {
   //server.handleClient();
   //delay(1);
 //end OTA
+  Serial.println("ESP.getFreeHeap()");
+Serial.println(ESP.getFreeHeap());
 printLocalTime();
+ //stringformat="%s";
+       Serial.println(F("five.bis"));
+  time_chr=str2chara("%s",asctime(&tm));
+  
+      Serial.println(F("six"));
+  Hour=tm.tm_hour;
+      Serial.println(F("seven"));
+  //  Serial.println(tm.tm_min);
 //strncpy(time_nowreading, asctime(&tm), 25);
 previous_reading=now_reading;
 analogValue = analogRead(4);
@@ -885,7 +908,7 @@ if ((previous_reading==0&&now_reading==1)||(previous_reading==1&&now_reading==0)
     Serial.println("WiFi.macAddress()");
   Serial.println(WiFi.macAddress());
 
-  //printLocalTime();
+//  printLocalTime();
   /*short mqtt_rc=client.state();
   Serial.println(F("MQTT client state:"));
   Serial.println(mqtt_rc);
