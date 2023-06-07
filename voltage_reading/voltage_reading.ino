@@ -82,12 +82,12 @@ const char* ssid = "UniPisa";*/
 short mqtt_rc;
 
 //vodafone ruffolo credentials 
-//const char* ssid = "Vodafoneebeb";
-//const char* password = "1lUB4jV1pdCCczvNdMyOvQQK";
+const char* ssid = "Vodafoneebeb";
+const char* password = "1lUB4jV1pdCCczvNdMyOvQQK";
 
 //Tim Carpineto credentials 
-const char* ssid = "ruterino";
-const char* password = "un cavallo muto";
+//const char* ssid = "ruterino";
+//const char* password = "un cavallo muto";
 
 //Malaphone
 //const char* ssid = "Malaphone";
@@ -779,6 +779,9 @@ char* i2chara(const char* A, int B){
   size_t sz;
   sz = snprintf(NULL, 0, A, B);
   buf = (char *)malloc(sz + 1); /* make sure you check for != NULL in real code */
+   while (!buf) {
+    buf = (char *)malloc(sz + 1); /* make sure you check for != NULL in real code */
+   }
   snprintf(buf, sz+1, A, B);
   return buf;
 }
@@ -788,6 +791,9 @@ char* ul2chara(const char* A, unsigned long B){
   size_t sz;
   sz = snprintf(NULL, 0, A, B);
   buf = (char *)malloc(sz + 1); /* make sure you check for != NULL in real code */
+  while (!buf) {
+    buf = (char *)malloc(sz + 1); /* make sure you check for != NULL in real code */
+   }
   snprintf(buf, sz+1, A, B);
   return buf;
 }
@@ -797,6 +803,9 @@ char* f2chara(const char* A, float B){
   size_t sz;
   sz = snprintf(NULL, 0, A, B);
   buf = (char *)malloc(sz + 1); /* make sure you check for != NULL in real code */
+  while (!buf) {
+    buf = (char *)malloc(sz + 1); /* make sure you check for != NULL in real code */
+   }
   snprintf(buf, sz+1, A, B);
   return buf;
 }
@@ -806,6 +815,9 @@ char* us2chara(const char *A, unsigned short B){
   size_t sz;
   sz = snprintf(NULL, 0, A, B);
   buf = (char *)malloc(sz + 1); /* make sure you check for != NULL in real code */
+  while (!buf) {
+    buf = (char *)malloc(sz + 1); /* make sure you check for != NULL in real code */
+   }
   snprintf(buf, sz+1, A, B);
   return buf;
 }
@@ -815,6 +827,9 @@ char* s2chara(const char *A, short B){
   size_t sz;
   sz = snprintf(NULL, 0, A, B);
   buf = (char *)malloc(sz + 1); /* make sure you check for != NULL in real code */
+  while (!buf) {
+    buf = (char *)malloc(sz + 1); /* make sure you check for != NULL in real code */
+   }
   snprintf(buf, sz+1, A, B);
   return buf;
 }
@@ -824,29 +839,34 @@ char* str2chara(const char* A, char* B){
  // size_t sz;
   sz = snprintf(NULL, 0, A, B);
   buf = (char *)malloc(sz + 1); /* make sure you check for != NULL in real code */
-  if (buf != NULL) {  
+  while (!buf) {
+    buf = (char *)malloc(sz + 1); /* make sure you check for != NULL in real code */
+   }
+  //if (buf != NULL) {  
   // do some thing usefull
-    snprintf(buf, sz+1, A, B);
-  return buf;
-} else {  
+//} else {  
  // no memory. safely return/throw ...  
-return "";
-}
-
+//return "";
+//}
+ snprintf(buf, sz+1, A, B);
+  return buf;
 }
 char* str2chara(const char* A,const char* B){
  // char *buf;
  // size_t sz;
   sz = snprintf(NULL, 0, A, B);
   buf = (char *)malloc(sz + 1); /* make sure you check for != NULL in real code */
-  if (buf != NULL) {  
-  // do some thing usefull
-    snprintf(buf, sz+1, A, B);
-  return buf; 
-} else {  
+    while (!buf) {
+    buf = (char *)malloc(sz + 1); /* make sure you check for != NULL in real code */
+   }
+   snprintf(buf, sz+1, A, B);
+  return buf;
+//  if (buf != NULL) {  
+  // do some thing usefull   
+//} else {  
  // no memory. safely return/throw ...
- return "";
-}  
+// return "";
+//}  
 }
 /*
 d or i  Signed decimal integer  392
@@ -882,7 +902,6 @@ printLocalTime();
  //stringformat="%s";
        Serial.println(F("five.bis"));
   time_chr=str2chara("%s",asctime(&tm));
-  
       Serial.println(F("six"));
   Hour=tm.tm_hour;
       Serial.println(F("seven"));
